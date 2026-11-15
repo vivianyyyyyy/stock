@@ -43,6 +43,10 @@
   .tile .v { font-family: var(--num); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
   .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  #forms { display: flex; flex-direction: column; gap: 24px; }
+  .form { display: flex; flex-direction: column; gap: 10px; }
+  .form h2 { margin: 0; font-size: 20px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .form h2 small { font-size: 13px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
   .board { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .row { display: grid; grid-template-columns: 2.2em 76px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
   .row:last-child { border-bottom: none; }
@@ -153,27 +157,31 @@ function render() {
     ...dates.map((d) => tile(`${d} 取货`, byDate[d], color(d))),
   );
 
-  const max = Math.max(1, ...items.map(total));
   const box = document.getElementById('forms');
-  const rows = items.filter((it) => !state.hideZero || total(it) > 0)
-    .sort((x, y) => total(y) - total(x) || x.form.localeCompare(y.form) || x.item.localeCompare(y.item));
-  if (!rows.length) { box.replaceChildren(el('p', { class: 'empty' }, '还没有订单。')); return; }
-  let rank = 0, prev = null;
-  box.replaceChildren(el('ol', { class: 'board' }, ...rows.map((it, i) => {
-    const t = total(it);
-    if (t !== prev) { rank = i + 1; prev = t; }
-    const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
-      ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
-    const split = dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d.replace(/（.*/, '')} ${it.by_date[d] || 0}`));
-    return el('li', { class: 'row' + (t ? '' : ' zero') },
-      el('span', { class: 'rank' }, t ? String(rank) : '–'),
-      it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
-      el('div', { class: 'info' },
-        el('div', { class: 'name' }, it.item),
-        el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.form), el('span', {}, it.category), ...split),
-        bar),
-      el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
-  })));
+  box.replaceChildren(...shown.map((f) => {
+    const fPieces = f.items.reduce((s, it) => s + total(it), 0);
+    const head = el('h2', {}, f.form, el('small', {}, `${f.orders} 张订单 · 共 ${fPieces} 件 · ` + dates.map((d) => `${d.replace(/（.*/, '')} ${f.items.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ')));
+    const rows = f.items.filter((it) => !state.hideZero || total(it) > 0)
+      .sort((x, y) => total(y) - total(x) || x.item.localeCompare(y.item));
+    if (!rows.length) return el('section', { class: 'form' }, head, el('p', { class: 'empty' }, '还没有订单。'));
+    const max = Math.max(1, ...rows.map(total));
+    let rank = 0, prev = null;
+    return el('section', { class: 'form' }, head, el('ol', { class: 'board' }, ...rows.map((it, i) => {
+      const t = total(it);
+      if (t !== prev) { rank = i + 1; prev = t; }
+      const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
+        ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
+      const split = dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d.replace(/（.*/, '')} ${it.by_date[d] || 0}`));
+      return el('li', { class: 'row' + (t ? '' : ' zero') },
+        el('span', { class: 'rank' }, t ? String(rank) : '–'),
+        it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
+        el('div', { class: 'info' },
+          el('div', { class: 'name' }, it.item),
+          el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.category), ...split),
+          bar),
+        el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
+    })));
+  }));
 }
 
 const hz = document.getElementById('hidezero');

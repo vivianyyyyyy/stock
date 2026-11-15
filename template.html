@@ -44,9 +44,23 @@
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
   .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
   #forms { display: flex; flex-direction: column; gap: 24px; }
-  .form { display: flex; flex-direction: column; gap: 10px; }
-  .form h2 { margin: 0; font-size: 20px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
-  .form h2 small { font-size: 13px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .group { display: flex; flex-direction: column; gap: 10px; }
+  .group > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 4px 0; border-radius: 6px; }
+  .group > summary::-webkit-details-marker { display: none; }
+  .group > summary::before { content: "▸"; color: var(--muted); font-size: 14px; width: 1em; transition: transform .15s; display: inline-block; }
+  .group[open] > summary::before { transform: rotate(90deg); }
+  .group > summary:focus-visible { outline: 2px solid var(--d0); outline-offset: 2px; }
+  .group > summary .t { font-size: 20px; font-weight: 700; }
+  .group > summary small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .group[open] > summary { margin-bottom: 2px; }
+  .sub { display: flex; flex-direction: column; gap: 8px; }
+  .sub h3 { margin: 6px 0 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; }
+  .sub h3 small { font-size: 12px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--panel); color: var(--fg); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  .seg button:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--d0); outline-offset: -2px; }
+  .linkbtn { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 4px 2px; cursor: pointer; text-decoration: underline; }
   .board { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .row { display: grid; grid-template-columns: 2.2em 76px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
   .row:last-child { border-bottom: none; }
@@ -85,9 +99,14 @@
   <div id="banners"></div>
   <div class="controls">
     <div class="tabs" id="tabs" role="group" aria-label="选择表单"></div>
+    <div class="seg" id="grouping" role="group" aria-label="分组方式">
+      <button type="button" data-g="cat">按类型</button>
+      <button type="button" data-g="form">按个人</button>
+    </div>
     <label class="ctl" for="hidezero"><input type="checkbox" id="hidezero" checked> 隐藏没人订的款式</label>
   </div>
   <div class="tiles" id="tiles"></div>
+  <div class="controls"><button type="button" class="linkbtn" id="openall">全部展开</button><button type="button" class="linkbtn" id="closeall">全部折叠</button></div>
   <div id="forms"></div>
   <div class="lightbox" id="lightbox" hidden><figure><img alt=""><figcaption></figcaption></figure></div>
   <footer>点图片可以看大图。数据每 10 分钟左右从 Google 表单同步一次，本页每 5 分钟自动刷新。</footer>
@@ -95,7 +114,7 @@
 <script>
 const DATA = /*__DATA__*/null;
 const COLORS = ['var(--d0)', 'var(--d1)', 'var(--d2)', 'var(--d3)'];
-const state = { form: '全部', hideZero: true };
+const state = { form: '全部', hideZero: true, group: 'cat', closed: {} };
 try { Object.assign(state, JSON.parse(localStorage.getItem('stock-view') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('stock-view', JSON.stringify(state)); } catch (e) {} };
 
@@ -141,6 +160,7 @@ function render() {
   const notes = shown.flatMap((f) => (f.notes || []).map((n) => `${f.form}：${n}`));
   if (notes.length) banners.append(el('div', { class: 'banner warn' }, '需要核对：', el('ul', {}, ...notes.map((n) => el('li', {}, n)))));
 
+  document.querySelectorAll('#grouping button').forEach((b) => b.setAttribute('aria-pressed', String(state.group === b.dataset.g)));
   const tabs = document.getElementById('tabs');
   tabs.replaceChildren(...['全部', ...forms.map((f) => f.form)].map((name) => {
     const b = el('button', { type: 'button', 'aria-pressed': String(state.form === name) }, name);
@@ -159,35 +179,69 @@ function render() {
   );
 
   const box = document.getElementById('forms');
-  const cats = Array.from(new Set(items.map((it) => it.category)))
-    .sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
-  box.replaceChildren(...cats.map((c) => {
-    const all = items.filter((it) => it.category === c);
-    const cPieces = all.reduce((s, it) => s + total(it), 0);
-    const head = el('h2', {}, c, el('small', {}, `共 ${cPieces} 件 · ` + dates.map((d) => `${d.replace(/（.*/, '')} ${all.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ')));
-    const rows = all.filter((it) => !state.hideZero || total(it) > 0)
+  const short = (d) => d.replace(/（.*/, '');
+  const sumLine = (list, extra) => (extra ? extra + ' · ' : '') + `共 ${list.reduce((s, it) => s + total(it), 0)} 件 · ` +
+    dates.map((d) => `${short(d)} ${list.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ');
+  const catSort = (a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99;
+
+  const board = (list, tagOf) => {
+    const rows = list.filter((it) => !state.hideZero || total(it) > 0)
       .sort((x, y) => total(y) - total(x) || x.form.localeCompare(y.form) || x.item.localeCompare(y.item));
-    if (!rows.length) return el('section', { class: 'form' }, head, el('p', { class: 'empty' }, '还没有订单。'));
+    if (!rows.length) return el('p', { class: 'empty' }, '还没有订单。');
     const max = Math.max(1, ...rows.map(total));
     let rank = 0, prev = null;
-    return el('section', { class: 'form' }, head, el('ol', { class: 'board' }, ...rows.map((it, i) => {
+    return el('ol', { class: 'board' }, ...rows.map((it, i) => {
       const t = total(it);
       if (t !== prev) { rank = i + 1; prev = t; }
       const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
         ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
-      const split = dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d.replace(/（.*/, '')} ${it.by_date[d] || 0}`));
+      const split = dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${short(d)} ${it.by_date[d] || 0}`));
       return el('li', { class: 'row' + (t ? '' : ' zero') },
         el('span', { class: 'rank' }, t ? String(rank) : '–'),
         it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
         el('div', { class: 'info' },
           el('div', { class: 'name' }, it.item),
-          el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.form), ...split),
+          el('div', { class: 'meta' }, ...(tagOf ? [el('span', { class: 'tag' }, tagOf(it))] : []), ...split),
           bar),
         el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
-    })));
-  }));
+    }));
+  };
+
+  const group = (key, title, line, ...body) => {
+    const d = el('details', { class: 'group' }, el('summary', {}, el('span', { class: 't' }, title), el('small', {}, line)), ...body);
+    d.open = !state.closed[key];
+    d.addEventListener('toggle', () => { if (d.open) delete state.closed[key]; else state.closed[key] = 1; save(); });
+    d.dataset.key = key;
+    return d;
+  };
+
+  if (state.group === 'form') {
+    box.replaceChildren(...shown.map((f) => group('form:' + f.form, f.form, sumLine(f.items, `${f.orders} 张订单`),
+      ...Array.from(new Set(f.items.map((it) => it.category))).sort(catSort)
+        .filter((c) => !state.hideZero || f.items.some((it) => it.category === c && total(it) > 0))
+        .map((c) => {
+          const list = f.items.filter((it) => it.category === c);
+          return el('div', { class: 'sub' }, el('h3', {}, c, el('small', {}, sumLine(list))), board(list));
+        }))));
+  } else {
+    box.replaceChildren(...Array.from(new Set(items.map((it) => it.category))).sort(catSort).map((c) => {
+      const list = items.filter((it) => it.category === c);
+      return group('cat:' + c, c, sumLine(list), board(list, (it) => it.form));
+    }));
+  }
 }
 
+document.querySelectorAll('#grouping button').forEach((b) => {
+  b.onclick = () => { state.group = b.dataset.g; save(); render(); };
+});
+const setAll = (open) => {
+  document.querySelectorAll('#forms details.group').forEach((d) => {
+    if (open) delete state.closed[d.dataset.key]; else state.closed[d.dataset.key] = 1;
+  });
+  save(); render();
+};
+document.getElementById('openall').onclick = () => setAll(true);
+document.getElementById('closeall').onclick = () => setAll(false);
 const hz = document.getElementById('hidezero');
 hz.checked = state.hideZero;
 hz.onchange = () => { state.hideZero = hz.checked; save(); render(); };

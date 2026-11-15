@@ -43,34 +43,33 @@
   .tile .v { font-family: var(--num); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
   .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-  .form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-  .form h2 { margin: 0; font-size: 18px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
-  .form h2 small { font-size: 13px; color: var(--muted); font-weight: 400; }
-  .scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
-  th { font-size: 12px; color: var(--muted); font-weight: 500; }
-  td.n, th.n { text-align: right; font-family: var(--num); }
-  tr.cat td { padding-top: 14px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; border-bottom: none; }
-  tr.zero td { color: var(--muted); }
-  td.sug { font-weight: 700; font-size: 16px; }
-  td.barcell { width: 40%; min-width: 120px; }
-  .bar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: transparent; }
+  .board { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .row { display: grid; grid-template-columns: 2.2em 76px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: none; }
+  .rank { font-family: var(--num); font-size: 15px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .row:nth-child(-n+3) .rank { color: var(--fg); font-weight: 700; font-size: 18px; }
+  .info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .name { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); align-items: center; font-variant-numeric: tabular-nums; }
+  .meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .tag { padding: 0 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--fg); }
+  .bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; margin-top: 2px; }
   .bar span { display: block; height: 100%; }
+  .qty { font-family: var(--num); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; min-width: 2.5em; }
+  .qty small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 2px; }
+  .zero .name, .zero .qty { color: var(--muted); }
   .empty { color: var(--muted); font-size: 14px; margin: 0; }
-  td.pic { width: 76px; padding-right: 4px; }
-  .thumb { display: block; width: 68px; height: 68px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); cursor: zoom-in; }
+  .thumb { display: block; width: 76px; height: 76px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); cursor: zoom-in; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .thumb:focus-visible { outline: 2px solid var(--d0); outline-offset: 2px; }
-  .noimg { display: grid; place-items: center; width: 68px; height: 68px; border: 1px dashed var(--line); border-radius: 8px; font-size: 12px; color: var(--muted); }
-  td.name { font-weight: 600; white-space: normal; min-width: 90px; }
+  .noimg { display: grid; place-items: center; width: 76px; height: 76px; border: 1px dashed var(--line); border-radius: 8px; font-size: 12px; color: var(--muted); }
   .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px; z-index: 10; cursor: zoom-out; }
   .lightbox[hidden] { display: none; }
   .lightbox figure { margin: 0; display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: min(92vw, 720px); }
   .lightbox img { max-width: 100%; max-height: 80vh; border-radius: 8px; }
   .lightbox figcaption { color: #fff; font-size: 14px; }
   footer { color: var(--muted); font-size: 12px; }
-  @media (max-width: 560px) { td.barcell, th.barcell { display: none; } .tile .v { font-size: 24px; } }
+  @media (max-width: 560px) { .row { grid-template-columns: 1.6em 60px minmax(0, 1fr) auto; gap: 10px; padding: 10px; } .thumb, .noimg { width: 60px; height: 60px; } .qty { font-size: 22px; } .tile .v { font-size: 24px; } }
 </style>
 </head>
 <body>
@@ -85,7 +84,6 @@
     <label class="ctl" for="hidezero"><input type="checkbox" id="hidezero" checked> 隐藏没人订的款式</label>
   </div>
   <div class="tiles" id="tiles"></div>
-  <div class="legend" id="legend"></div>
   <div id="forms"></div>
   <div class="lightbox" id="lightbox" hidden><figure><img alt=""><figcaption></figcaption></figure></div>
   <footer>点图片可以看大图。数据每 10 分钟左右从 Google 表单同步一次，本页每 5 分钟自动刷新。</footer>
@@ -93,7 +91,6 @@
 <script>
 const DATA = /*__DATA__*/null;
 const COLORS = ['var(--d0)', 'var(--d1)', 'var(--d2)', 'var(--d3)'];
-const CAT_ORDER = ['手幅', '团扇', '小手幅挂件', '小团扇挂件', '小挂件（手幅/团扇）', '其他'];
 const state = { form: '全部', hideZero: true };
 try { Object.assign(state, JSON.parse(localStorage.getItem('stock-view') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('stock-view', JSON.stringify(state)); } catch (e) {} };
@@ -155,37 +152,28 @@ function render() {
     tile('已订件数', pieces),
     ...dates.map((d) => tile(`${d} 取货`, byDate[d], color(d))),
   );
-  document.getElementById('legend').replaceChildren(...dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d} 取货`)));
 
   const max = Math.max(1, ...items.map(total));
   const box = document.getElementById('forms');
-  box.replaceChildren();
-  box.style.cssText = 'display:flex;flex-direction:column;gap:16px';
-  for (const f of shown) {
-    const rows = f.items.filter((it) => !state.hideZero || total(it) > 0);
-    const fPieces = f.items.reduce((s, it) => s + total(it), 0);
-    const sec = el('section', { class: 'form' }, el('h2', {}, f.form, el('small', {}, `${f.orders} 张订单 · 已订 ${fPieces} 件`)));
-    if (!rows.length) { sec.append(el('p', { class: 'empty' }, '还没有订单。')); box.append(sec); continue; }
-    const thead = el('tr', {}, el('th', {}, '图'), el('th', {}, '款式'), ...dates.map((d) => el('th', { class: 'n' }, d)), el('th', { class: 'n' }, '合计'), el('th', { class: 'barcell' }, ''));
-    const tbody = el('tbody');
-    const cats = Array.from(new Set(rows.map((r) => r.category))).sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
-    for (const c of cats) {
-      tbody.append(el('tr', { class: 'cat' }, el('td', { colspan: String(dates.length + 4) }, c)));
-      rows.filter((r) => r.category === c).sort((a, b) => total(b) - total(a)).forEach((it) => {
-        const t = total(it);
-        const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
-          ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
-        tbody.append(el('tr', { class: t ? '' : 'zero' },
-          el('td', { class: 'pic' }, it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图')),
-          el('td', { class: 'name' }, it.item),
-          ...dates.map((d) => el('td', { class: 'n' }, it.by_date[d] ? String(it.by_date[d]) : '·')),
-          el('td', { class: 'n sug' }, String(t)),
-          el('td', { class: 'barcell' }, bar)));
-      });
-    }
-    sec.append(el('div', { class: 'scroll' }, el('table', {}, el('thead', {}, thead), tbody)));
-    box.append(sec);
-  }
+  const rows = items.filter((it) => !state.hideZero || total(it) > 0)
+    .sort((x, y) => total(y) - total(x) || x.form.localeCompare(y.form) || x.item.localeCompare(y.item));
+  if (!rows.length) { box.replaceChildren(el('p', { class: 'empty' }, '还没有订单。')); return; }
+  let rank = 0, prev = null;
+  box.replaceChildren(el('ol', { class: 'board' }, ...rows.map((it, i) => {
+    const t = total(it);
+    if (t !== prev) { rank = i + 1; prev = t; }
+    const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
+      ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
+    const split = dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d.replace(/（.*/, '')} ${it.by_date[d] || 0}`));
+    return el('li', { class: 'row' + (t ? '' : ' zero') },
+      el('span', { class: 'rank' }, t ? String(rank) : '–'),
+      it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
+      el('div', { class: 'info' },
+        el('div', { class: 'name' }, it.item),
+        el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.form), el('span', {}, it.category), ...split),
+        bar),
+      el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
+  })));
 }
 
 const hz = document.getElementById('hidezero');

@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "*/10 * * * *"   # 每 10 分钟（GitHub 高峰期可能会晚几分钟）
   workflow_dispatch:          # 也可以在 Actions 页面手动点 Run
+  push:                       # 改了脚本或网页模板后立刻跑一次
+    branches: [main]
+    paths: [stock.py, template.html, .github/workflows/update.yml]
 
 permissions:
   contents: write

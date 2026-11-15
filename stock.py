@@ -46,7 +46,8 @@ def split_item(text):
 
 
 def parse_header(h):
-    h = re.sub(r"[\s　]*[\d,]+円", "", h).replace("　", " ").strip()
+    h = re.sub(r"\s+", " ", h)  # 表头里有全角空格、窄空格等，统一成普通空格
+    h = re.sub(r"\s*[\d,]+円", "", h).strip()
     m = re.match(r"^(.*?)\s*\[(.*)\]\s*$", h)
     outside, inside = (m.group(1).strip(), m.group(2).strip()) if m else (h, "")
     if inside == "個数":

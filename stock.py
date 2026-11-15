@@ -72,10 +72,32 @@ def norm_date(s):
     return s.strip() or "未填"
 
 
-def parse_form(name, rows):
+CAT_ZH = {
+    "スローガン": "手幅",
+    "うちわ": "团扇",
+    "ミニスローガンキーホルダー": "小手幅挂件",
+    "ミニうちわキーホルダー": "小团扇挂件",
+    SHARED_CAT: "小挂件（手幅/团扇）",
+}
+
+
+def load_products():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "products.json")
+    try:
+        return json.load(open(path, encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+
+
+def parse_form(name, rows, products):
     hdr = rows[0]
     di = hdr.index(DATE_COL)
-    cols = [(i, *parse_header(h)) for i, h in enumerate(hdr) if 1 < i < di]
+    fix = products.get("category", {})
+    cols = []
+    for i, h in enumerate(hdr):
+        if 1 < i < di:
+            it, c = parse_header(h)
+            cols.append((i, it, fix.get(f"{name}|{it}", c)))
     items = {(c, it): {"form": name, "category": c, "item": it, "by_date": {}} for _, it, c in cols}
     orders, notes = 0, []
     for r in rows[1:]:
@@ -92,6 +114,14 @@ def parse_form(name, rows):
             if q:
                 bd = items[(c, it)]["by_date"]
                 bd[d] = bd.get(d, 0) + q
+    imgs = products.get("images", {})
+    for (c, it), v in items.items():
+        v["category"] = CAT_ZH.get(c, c)
+        v["img"] = imgs.get(f"{name}|{c}|{it}") or imgs.get(f"{name}|{it}")
+    for i, n in enumerate(notes):
+        for jp, zh in CAT_ZH.items():
+            n = n.replace(f"「{jp} ", f"「{zh} ")
+        notes[i] = n
     return {"form": name, "orders": orders, "items": list(items.values()), "notes": notes}
 
 
@@ -108,13 +138,14 @@ def unchanged(data):
 
 def main():
     forms, errors = [], []
+    products = load_products()
     for name, env in FORMS:
         sid = os.environ.get(env, "").strip()
         if not sid:
             errors.append(f"{name}：没有设置 {env}")
             continue
         try:
-            forms.append(parse_form(name, fetch_csv(sid)))
+            forms.append(parse_form(name, fetch_csv(sid), products))
         except Exception as e:  # 一张表出错不影响其它表
             errors.append(f"{name}：{e}")
     if not forms:

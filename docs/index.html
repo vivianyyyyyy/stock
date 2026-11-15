@@ -58,6 +58,17 @@
   .bar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: transparent; }
   .bar span { display: block; height: 100%; }
   .empty { color: var(--muted); font-size: 14px; margin: 0; }
+  td.pic { width: 76px; padding-right: 4px; }
+  .thumb { display: block; width: 68px; height: 68px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); cursor: zoom-in; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb:focus-visible { outline: 2px solid var(--d0); outline-offset: 2px; }
+  .noimg { display: grid; place-items: center; width: 68px; height: 68px; border: 1px dashed var(--line); border-radius: 8px; font-size: 12px; color: var(--muted); }
+  td.name { font-weight: 600; white-space: normal; min-width: 90px; }
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px; z-index: 10; cursor: zoom-out; }
+  .lightbox[hidden] { display: none; }
+  .lightbox figure { margin: 0; display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: min(92vw, 720px); }
+  .lightbox img { max-width: 100%; max-height: 80vh; border-radius: 8px; }
+  .lightbox figcaption { color: #fff; font-size: 14px; }
   footer { color: var(--muted); font-size: 12px; }
   @media (max-width: 560px) { td.barcell, th.barcell { display: none; } .tile .v { font-size: 24px; } }
 </style>
@@ -71,27 +82,19 @@
   <div id="banners"></div>
   <div class="controls">
     <div class="tabs" id="tabs" role="group" aria-label="选择表单"></div>
-    <label class="ctl" for="buffer">多备余量
-      <select id="buffer">
-        <option value="0">不加</option>
-        <option value="0.1">+10%</option>
-        <option value="0.2" selected>+20%</option>
-        <option value="0.3">+30%</option>
-        <option value="0.5">+50%</option>
-      </select>
-    </label>
     <label class="ctl" for="hidezero"><input type="checkbox" id="hidezero" checked> 隐藏没人订的款式</label>
   </div>
   <div class="tiles" id="tiles"></div>
   <div class="legend" id="legend"></div>
   <div id="forms"></div>
-  <footer>“建议备货”= 已订件数 ×（1 + 余量），向上取整。数据每 10 分钟左右从 Google 表单同步一次，本页每 5 分钟自动刷新。</footer>
+  <div class="lightbox" id="lightbox" hidden><figure><img alt=""><figcaption></figcaption></figure></div>
+  <footer>点图片可以看大图。数据每 10 分钟左右从 Google 表单同步一次，本页每 5 分钟自动刷新。</footer>
 </div>
 <script>
-const DATA = {"updated": "2026-11-16 01:29", "forms": [{"form": "ed95", "orders": 20, "items": [{"form": "ed95", "category": "スローガン", "item": "Aura", "by_date": {"11/22（日）": 1, "11/21（土）": 2}}, {"form": "ed95", "category": "スローガン", "item": "Wink", "by_date": {"11/21（土）": 4}}, {"form": "ed95", "category": "スローガン", "item": "Halo", "by_date": {"11/21（土）": 3, "11/22（日）": 1}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "Ribbon", "by_date": {"11/21（土）": 3, "11/22（日）": 1}}, {"form": "ed95", "category": "スローガン", "item": "black", "by_date": {}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini black", "by_date": {}}, {"form": "ed95", "category": "スローガン", "item": "cuddle", "by_date": {"11/22（日）": 1}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini cuddle", "by_date": {"11/22（日）": 1}}, {"form": "ed95", "category": "スローガン", "item": "skyblue", "by_date": {"11/21（土）": 4}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini skyblue", "by_date": {"11/21（土）": 1}}, {"form": "ed95", "category": "スローガン", "item": "dawn 60*30", "by_date": {}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Mini Bubblegum", "by_date": {}}, {"form": "ed95", "category": "うちわ", "item": "Bubbglegum", "by_date": {"11/21（土）": 5}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Mini Sunshine", "by_date": {"11/21（土）": 1, "11/22（日）": 1}}, {"form": "ed95", "category": "うちわ", "item": "Sunshine", "by_date": {"11/22（日）": 3, "11/21（土）": 1}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Pink", "by_date": {}}], "notes": ["第 9 张订单的「スローガン Aura」填的是「0, 1」，按 1 件计算，请核对"]}, {"form": "k2", "orders": 15, "items": [{"form": "k2", "category": "スローガン", "item": "HEARTBEAT", "by_date": {"11/21（土）": 2, "11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "NOT PERSONAL", "by_date": {"11/21（土）": 9, "11/22（日）": 2}}, {"form": "k2", "category": "スローガン", "item": "ETHEREAL", "by_date": {"11/21（土）": 3, "11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "GUMMY", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "スローガン", "item": "ANGEL", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "JUNGLE", "by_date": {"11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "BREEZE", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "スローガン", "item": "GLOW", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "EMERALD", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "MAGNETIC", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "DIARY(KOREAN)", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "DIRAY(CHINESE)", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "ALLURING", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "PRETTY U", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "TAKOYAKI", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "VOGUE", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "REF:RAIN", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "BLANC", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "CATCH CATCH", "by_date": {"11/21（土）": 2}}, {"form": "k2", "category": "うちわ", "item": "PASTEL", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "LABEL", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "元气", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "FLUFFY", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "MOCHI", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "HEARTBEAT", "by_date": {"11/21（土）": 4, "11/22（日）": 2}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "PAWSTIVE", "by_date": {"11/21（土）": 3}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "HALO", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "BREEZE", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "DEAMY", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "NOTE", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "PRETTY U", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "VOUGE", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "CATCH CATCH", "by_date": {"11/21（土）": 2}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "YUMMY", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "元气", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "MOCHI", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "GAKURAN", "by_date": {"11/21（土）": 2}}, {"form": "k2", "category": "ミニキーホルダー", "item": "CINNAMOROLL", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "FUFFLY", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "ALIEN", "by_date": {}}], "notes": []}, {"form": "unit", "orders": 9, "items": [{"form": "unit", "category": "スローガン", "item": "Wonderland", "by_date": {"11/21（土）": 1}}, {"form": "unit", "category": "スローガン", "item": "Echo", "by_date": {"11/22（日）": 1}}, {"form": "unit", "category": "其他", "item": "J x J", "by_date": {"11/22（日）": 1}}, {"form": "unit", "category": "ミニうちわキーホルダー", "item": "Daydream", "by_date": {"11/21（土）": 6, "11/22（日）": 1}}, {"form": "unit", "category": "うちわ", "item": "Daydream", "by_date": {"11/21（土）": 5, "11/22（日）": 2}}], "notes": []}], "errors": []};
+const DATA = {"updated": "2026-11-16 01:37", "forms": [{"form": "ed95", "orders": 20, "items": [{"form": "ed95", "category": "手幅", "item": "Aura", "by_date": {"11/22（日）": 1, "11/21（土）": 2}, "img": "ed95-aura.jpg"}, {"form": "ed95", "category": "手幅", "item": "Wink", "by_date": {"11/21（土）": 4}, "img": "ed95-wink.jpg"}, {"form": "ed95", "category": "手幅", "item": "Halo", "by_date": {"11/21（土）": 3, "11/22（日）": 1}, "img": "ed95-halo.jpg"}, {"form": "ed95", "category": "小手幅挂件", "item": "Ribbon", "by_date": {"11/21（土）": 3, "11/22（日）": 1}, "img": "ed95-ribbon.jpg"}, {"form": "ed95", "category": "手幅", "item": "black", "by_date": {}, "img": "ed95-black.jpg"}, {"form": "ed95", "category": "小手幅挂件", "item": "mini black", "by_date": {}, "img": "ed95-black.jpg"}, {"form": "ed95", "category": "手幅", "item": "cuddle", "by_date": {"11/22（日）": 1}, "img": "ed95-cuddle.jpg"}, {"form": "ed95", "category": "小手幅挂件", "item": "mini cuddle", "by_date": {"11/22（日）": 1}, "img": "ed95-cuddle-mini.jpg"}, {"form": "ed95", "category": "手幅", "item": "skyblue", "by_date": {"11/21（土）": 4}, "img": "ed95-skyblue.jpg"}, {"form": "ed95", "category": "小手幅挂件", "item": "mini skyblue", "by_date": {"11/21（土）": 1}, "img": "ed95-skyblue.jpg"}, {"form": "ed95", "category": "手幅", "item": "dawn 60*30", "by_date": {}, "img": "ed95-dawn.jpg"}, {"form": "ed95", "category": "小团扇挂件", "item": "Mini Bubblegum", "by_date": {}, "img": "ed95-bubblegum-mini.jpg"}, {"form": "ed95", "category": "团扇", "item": "Bubbglegum", "by_date": {"11/21（土）": 5}, "img": "ed95-bubblegum.jpg"}, {"form": "ed95", "category": "小团扇挂件", "item": "Mini Sunshine", "by_date": {"11/21（土）": 1, "11/22（日）": 1}, "img": "ed95-sunshine.jpg"}, {"form": "ed95", "category": "团扇", "item": "Sunshine", "by_date": {"11/22（日）": 3, "11/21（土）": 1}, "img": "ed95-sunshine.jpg"}, {"form": "ed95", "category": "小团扇挂件", "item": "Pink", "by_date": {}, "img": "ed95-pink-mini.jpg"}], "notes": ["第 9 张订单的「手幅 Aura」填的是「0, 1」，按 1 件计算，请核对"]}, {"form": "k2", "orders": 15, "items": [{"form": "k2", "category": "手幅", "item": "HEARTBEAT", "by_date": {"11/21（土）": 2, "11/22（日）": 1}, "img": null}, {"form": "k2", "category": "手幅", "item": "NOT PERSONAL", "by_date": {"11/21（土）": 9, "11/22（日）": 2}, "img": null}, {"form": "k2", "category": "手幅", "item": "ETHEREAL", "by_date": {"11/21（土）": 3, "11/22（日）": 1}, "img": null}, {"form": "k2", "category": "手幅", "item": "GUMMY", "by_date": {"11/21（土）": 1}, "img": null}, {"form": "k2", "category": "手幅", "item": "ANGEL", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "JUNGLE", "by_date": {"11/22（日）": 1}, "img": null}, {"form": "k2", "category": "手幅", "item": "BREEZE", "by_date": {"11/21（土）": 1}, "img": null}, {"form": "k2", "category": "手幅", "item": "GLOW", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "EMERALD", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "MAGNETIC", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "DIARY(KOREAN)", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "DIRAY(CHINESE)", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "ALLURING", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "PRETTY U", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "TAKOYAKI", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "VOGUE", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "REF:RAIN", "by_date": {}, "img": null}, {"form": "k2", "category": "手幅", "item": "BLANC", "by_date": {}, "img": null}, {"form": "k2", "category": "团扇", "item": "CATCH CATCH", "by_date": {"11/21（土）": 2}, "img": null}, {"form": "k2", "category": "团扇", "item": "PASTEL", "by_date": {}, "img": null}, {"form": "k2", "category": "团扇", "item": "LABEL", "by_date": {}, "img": null}, {"form": "k2", "category": "团扇", "item": "元气", "by_date": {}, "img": null}, {"form": "k2", "category": "团扇", "item": "FLUFFY", "by_date": {}, "img": null}, {"form": "k2", "category": "团扇", "item": "MOCHI", "by_date": {}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "HEARTBEAT", "by_date": {"11/21（土）": 4, "11/22（日）": 2}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "PAWSTIVE", "by_date": {"11/21（土）": 3}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "HALO", "by_date": {"11/21（土）": 1}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "BREEZE", "by_date": {"11/21（土）": 1}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "DEAMY", "by_date": {}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "NOTE", "by_date": {}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "PRETTY U", "by_date": {}, "img": null}, {"form": "k2", "category": "小手幅挂件", "item": "VOUGE", "by_date": {}, "img": null}, {"form": "k2", "category": "小团扇挂件", "item": "CATCH CATCH", "by_date": {"11/21（土）": 2}, "img": null}, {"form": "k2", "category": "小团扇挂件", "item": "YUMMY", "by_date": {}, "img": null}, {"form": "k2", "category": "小团扇挂件", "item": "元气", "by_date": {}, "img": null}, {"form": "k2", "category": "小团扇挂件", "item": "MOCHI", "by_date": {}, "img": null}, {"form": "k2", "category": "小挂件（手幅/团扇）", "item": "GAKURAN", "by_date": {"11/21（土）": 2}, "img": null}, {"form": "k2", "category": "小挂件（手幅/团扇）", "item": "CINNAMOROLL", "by_date": {}, "img": null}, {"form": "k2", "category": "小挂件（手幅/团扇）", "item": "FUFFLY", "by_date": {}, "img": null}, {"form": "k2", "category": "小挂件（手幅/团扇）", "item": "ALIEN", "by_date": {}, "img": null}], "notes": []}, {"form": "unit", "orders": 9, "items": [{"form": "unit", "category": "手幅", "item": "Wonderland", "by_date": {"11/21（土）": 1}, "img": "unit-wonderland.jpg"}, {"form": "unit", "category": "手幅", "item": "Echo", "by_date": {"11/22（日）": 1}, "img": "unit-echo.jpg"}, {"form": "unit", "category": "其他", "item": "J x J", "by_date": {"11/22（日）": 1}, "img": null}, {"form": "unit", "category": "小团扇挂件", "item": "Daydream", "by_date": {"11/21（土）": 6, "11/22（日）": 1}, "img": "unit-daydream-mini.jpg"}, {"form": "unit", "category": "团扇", "item": "Daydream", "by_date": {"11/21（土）": 5, "11/22（日）": 2}, "img": "unit-daydream.jpg"}], "notes": []}], "errors": []};
 const COLORS = ['var(--d0)', 'var(--d1)', 'var(--d2)', 'var(--d3)'];
-const CAT_ORDER = ['スローガン', 'うちわ', 'ミニスローガンキーホルダー', 'ミニうちわキーホルダー', 'ミニキーホルダー', '其他'];
-const state = { form: '全部', buffer: 0.2, hideZero: true };
+const CAT_ORDER = ['手幅', '团扇', '小手幅挂件', '小团扇挂件', '小挂件（手幅/团扇）', '其他'];
+const state = { form: '全部', hideZero: true };
 try { Object.assign(state, JSON.parse(localStorage.getItem('stock-view') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('stock-view', JSON.stringify(state)); } catch (e) {} };
 
@@ -104,7 +107,20 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 const total = (it) => Object.values(it.by_date).reduce((a, b) => a + b, 0);
-const suggest = (q) => (q ? Math.ceil(q * (1 + state.buffer) - 1e-9) : 0);
+
+const lb = document.getElementById('lightbox');
+function picButton(it) {
+  const b = el('button', { type: 'button', class: 'thumb', 'aria-label': `看 ${it.item} 的大图` },
+    el('img', { src: 'img/' + it.img, alt: `${it.category} ${it.item}`, loading: 'lazy' }));
+  b.onclick = () => {
+    lb.querySelector('img').src = 'img/' + it.img;
+    lb.querySelector('figcaption').textContent = `${it.form} · ${it.category} · ${it.item}`;
+    lb.hidden = false;
+  };
+  return b;
+}
+lb.onclick = () => { lb.hidden = true; };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; });
 
 function render() {
   const forms = DATA.forms;
@@ -133,13 +149,11 @@ function render() {
   const items = shown.flatMap((f) => f.items);
   const byDate = Object.fromEntries(dates.map((d) => [d, items.reduce((s, it) => s + (it.by_date[d] || 0), 0)]));
   const pieces = items.reduce((s, it) => s + total(it), 0);
-  const stock = items.reduce((s, it) => s + suggest(total(it)), 0);
   const tile = (k, v, c) => el('div', { class: 'tile' }, el('div', { class: 'k' }, ...(c ? [el('i', { class: 'sw', style: `background:${c}` })] : []), k), el('div', { class: 'v' }, String(v)));
   document.getElementById('tiles').replaceChildren(
     tile('订单数', shown.reduce((s, f) => s + f.orders, 0)),
     tile('已订件数', pieces),
     ...dates.map((d) => tile(`${d} 取货`, byDate[d], color(d))),
-    tile('建议备货合计', stock),
   );
   document.getElementById('legend').replaceChildren(...dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d} 取货`)));
 
@@ -152,7 +166,7 @@ function render() {
     const fPieces = f.items.reduce((s, it) => s + total(it), 0);
     const sec = el('section', { class: 'form' }, el('h2', {}, f.form, el('small', {}, `${f.orders} 张订单 · 已订 ${fPieces} 件`)));
     if (!rows.length) { sec.append(el('p', { class: 'empty' }, '还没有订单。')); box.append(sec); continue; }
-    const thead = el('tr', {}, el('th', {}, '款式'), ...dates.map((d) => el('th', { class: 'n' }, d)), el('th', { class: 'n' }, '已订'), el('th', { class: 'barcell' }, ''), el('th', { class: 'n' }, '建议备货'));
+    const thead = el('tr', {}, el('th', {}, '图'), el('th', {}, '款式'), ...dates.map((d) => el('th', { class: 'n' }, d)), el('th', { class: 'n' }, '合计'), el('th', { class: 'barcell' }, ''));
     const tbody = el('tbody');
     const cats = Array.from(new Set(rows.map((r) => r.category))).sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
     for (const c of cats) {
@@ -162,11 +176,11 @@ function render() {
         const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
           ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
         tbody.append(el('tr', { class: t ? '' : 'zero' },
-          el('td', {}, it.item),
+          el('td', { class: 'pic' }, it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图')),
+          el('td', { class: 'name' }, it.item),
           ...dates.map((d) => el('td', { class: 'n' }, it.by_date[d] ? String(it.by_date[d]) : '·')),
-          el('td', { class: 'n' }, String(t)),
-          el('td', { class: 'barcell' }, bar),
-          el('td', { class: 'n sug' }, String(suggest(t)))));
+          el('td', { class: 'n sug' }, String(t)),
+          el('td', { class: 'barcell' }, bar)));
       });
     }
     sec.append(el('div', { class: 'scroll' }, el('table', {}, el('thead', {}, thead), tbody)));
@@ -174,10 +188,8 @@ function render() {
   }
 }
 
-const buf = document.getElementById('buffer');
 const hz = document.getElementById('hidezero');
-buf.value = String(state.buffer); hz.checked = state.hideZero;
-buf.onchange = () => { state.buffer = +buf.value; save(); render(); };
+hz.checked = state.hideZero;
 hz.onchange = () => { state.hideZero = hz.checked; save(); render(); };
 if (!DATA.forms.some((f) => f.form === state.form)) state.form = '全部';
 render();

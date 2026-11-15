@@ -1,0 +1,29 @@
+{
+  "_说明": "images：款式对应的图片（docs/img 里的文件名）。键是「表单|款式名」，同一表单里大小款同名时用「表单|分类|款式名」。category：表单里没写分类的款式，在这里补上。",
+  "images": {
+    "ed95|Aura": "ed95-aura.jpg",
+    "ed95|Wink": "ed95-wink.jpg",
+    "ed95|Halo": "ed95-halo.jpg",
+    "ed95|Ribbon": "ed95-ribbon.jpg",
+    "ed95|black": "ed95-black.jpg",
+    "ed95|mini black": "ed95-black.jpg",
+    "ed95|cuddle": "ed95-cuddle.jpg",
+    "ed95|mini cuddle": "ed95-cuddle-mini.jpg",
+    "ed95|skyblue": "ed95-skyblue.jpg",
+    "ed95|mini skyblue": "ed95-skyblue.jpg",
+    "ed95|dawn 60*30": "ed95-dawn.jpg",
+    "ed95|Mini Bubblegum": "ed95-bubblegum-mini.jpg",
+    "ed95|Bubbglegum": "ed95-bubblegum.jpg",
+    "ed95|Mini Sunshine": "ed95-sunshine.jpg",
+    "ed95|Sunshine": "ed95-sunshine.jpg",
+    "ed95|Pink": "ed95-pink-mini.jpg",
+    "unit|Wonderland": "unit-wonderland.jpg",
+    "unit|Echo": "unit-echo.jpg",
+    "unit|J x J": "unit-jxj.jpg",
+    "unit|ミニうちわキーホルダー|Daydream": "unit-daydream-mini.jpg",
+    "unit|うちわ|Daydream": "unit-daydream.jpg"
+  },
+  "category": {
+    "unit|J x J": "スローガン"
+  }
+}

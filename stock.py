@@ -111,7 +111,7 @@ def parse_form(name, rows, products):
             nums = [int(float(x)) for x in re.findall(r"\d+(?:\.\d+)?", v)]
             q = max(nums) if nums else 0
             if len(nums) > 1 or (v and not nums):
-                notes.append(f"第 {orders} 张订单的「{c} {it}」填的是「{v}」，按 {q} 件计算，请核对")
+                notes.append(f"表格第 {rows.index(r) + 1} 行（{r[0]} 提交）的「{c} {it}」填的是「{v}」，现在按 {q} 件算。确认后可以直接在表格里改成正确数字")
             if q:
                 bd = items[(c, it)]["by_date"]
                 bd[d] = bd.get(d, 0) + q

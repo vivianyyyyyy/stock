@@ -58,12 +58,16 @@
     "k2|ミニうちわキーホルダー|YUMMY": "k2-yummy-mini.jpg",
     "k2|ミニうちわキーホルダー|元气": "k2-genki-mini.jpg",
     "k2|ミニうちわキーホルダー|MOCHI": "k2-mochi-mini.jpg",
-    "k2|ミニキーホルダー|GAKURAN": "k2-gakuran-mini.jpg",
-    "k2|ミニキーホルダー|CINNAMOROLL": "k2-cinnamoroll-mini.jpg",
-    "k2|ミニキーホルダー|FUFFLY": "k2-fluffy-mini.jpg",
-    "k2|ミニキーホルダー|ALIEN": "k2-alien-mini.jpg"
+    "k2|ミニスローガンキーホルダー|GAKURAN": "k2-gakuran-mini.jpg",
+    "k2|ミニスローガンキーホルダー|CINNAMOROLL": "k2-cinnamoroll-mini.jpg",
+    "k2|ミニうちわキーホルダー|FUFFLY": "k2-fluffy-mini.jpg",
+    "k2|ミニうちわキーホルダー|ALIEN": "k2-alien-mini.jpg"
   },
   "category": {
-    "unit|J x J": "スローガン"
+    "unit|J x J": "スローガン",
+    "k2|GAKURAN": "ミニスローガンキーホルダー",
+    "k2|CINNAMOROLL": "ミニスローガンキーホルダー",
+    "k2|FUFFLY": "ミニうちわキーホルダー",
+    "k2|ALIEN": "ミニうちわキーホルダー"
   }
 }

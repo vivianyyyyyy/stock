@@ -109,6 +109,7 @@ const el = (tag, attrs = {}, ...kids) => {
 };
 const total = (it) => Object.values(it.by_date).reduce((a, b) => a + b, 0);
 
+const CAT_ORDER = ['手幅', '小手幅', '团扇', '团扇钥匙链', '小手幅/团扇钥匙链', '其他'];
 const lb = document.getElementById('lightbox');
 function picButton(it) {
   const b = el('button', { type: 'button', class: 'thumb', 'aria-label': `看 ${it.item} 的大图` },
@@ -158,11 +159,14 @@ function render() {
   );
 
   const box = document.getElementById('forms');
-  box.replaceChildren(...shown.map((f) => {
-    const fPieces = f.items.reduce((s, it) => s + total(it), 0);
-    const head = el('h2', {}, f.form, el('small', {}, `${f.orders} 张订单 · 共 ${fPieces} 件 · ` + dates.map((d) => `${d.replace(/（.*/, '')} ${f.items.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ')));
-    const rows = f.items.filter((it) => !state.hideZero || total(it) > 0)
-      .sort((x, y) => total(y) - total(x) || x.item.localeCompare(y.item));
+  const cats = Array.from(new Set(items.map((it) => it.category)))
+    .sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
+  box.replaceChildren(...cats.map((c) => {
+    const all = items.filter((it) => it.category === c);
+    const cPieces = all.reduce((s, it) => s + total(it), 0);
+    const head = el('h2', {}, c, el('small', {}, `共 ${cPieces} 件 · ` + dates.map((d) => `${d.replace(/（.*/, '')} ${all.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ')));
+    const rows = all.filter((it) => !state.hideZero || total(it) > 0)
+      .sort((x, y) => total(y) - total(x) || x.form.localeCompare(y.form) || x.item.localeCompare(y.item));
     if (!rows.length) return el('section', { class: 'form' }, head, el('p', { class: 'empty' }, '还没有订单。'));
     const max = Math.max(1, ...rows.map(total));
     let rank = 0, prev = null;
@@ -177,7 +181,7 @@ function render() {
         it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
         el('div', { class: 'info' },
           el('div', { class: 'name' }, it.item),
-          el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.category), ...split),
+          el('div', { class: 'meta' }, el('span', { class: 'tag' }, it.form), ...split),
           bar),
         el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
     })));

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>周边备货清单</title>
+<style>
+  /* 拣货单式布局：顶部汇总，下面按表单 → 分类 → 款式逐行列出 */
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --fg: #1b2230; --muted: #5d6676; --line: #e1e4ea;
+    --d0: #2f6fd6; --d1: #e0892b; --d2: #3a9d74; --d3: #8a5cc7;
+    --warn-bg: #fff4e0; --warn-fg: #8a5300; --bad-bg: #fde8e8; --bad-fg: #a12626;
+    --font: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --fg: #e8ebf0; --muted: #9aa3b2; --line: #2c3340;
+      --d0: #6b9cf0; --d1: #f0a35a; --d2: #5fc196; --d3: #b28be6;
+      --warn-bg: #3a2c12; --warn-fg: #f3c77a; --bad-bg: #3d1b1b; --bad-fg: #f2a1a1;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: .02em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  .banner { border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+  .banner.warn { background: var(--warn-bg); color: var(--warn-fg); }
+  .banner.bad { background: var(--bad-bg); color: var(--bad-fg); }
+  .banner ul { margin: 4px 0 0; padding-left: 18px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tabs button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--d0); outline-offset: 2px; }
+  label.ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+  select { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tile .k { font-size: 12px; color: var(--muted); letter-spacing: .04em; display: flex; align-items: center; gap: 6px; }
+  .tile .v { font-family: var(--num); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .form h2 { margin: 0; font-size: 18px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+  .form h2 small { font-size: 13px; color: var(--muted); font-weight: 400; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 500; }
+  td.n, th.n { text-align: right; font-family: var(--num); }
+  tr.cat td { padding-top: 14px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; border-bottom: none; }
+  tr.zero td { color: var(--muted); }
+  td.sug { font-weight: 700; font-size: 16px; }
+  td.barcell { width: 40%; min-width: 120px; }
+  .bar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: transparent; }
+  .bar span { display: block; height: 100%; }
+  .empty { color: var(--muted); font-size: 14px; margin: 0; }
+  footer { color: var(--muted); font-size: 12px; }
+  @media (max-width: 560px) { td.barcell, th.barcell { display: none; } .tile .v { font-size: 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>周边备货清单</h1>
+    <p class="sub" id="updated"></p>
+  </header>
+  <div id="banners"></div>
+  <div class="controls">
+    <div class="tabs" id="tabs" role="group" aria-label="选择表单"></div>
+    <label class="ctl" for="buffer">多备余量
+      <select id="buffer">
+        <option value="0">不加</option>
+        <option value="0.1">+10%</option>
+        <option value="0.2" selected>+20%</option>
+        <option value="0.3">+30%</option>
+        <option value="0.5">+50%</option>
+      </select>
+    </label>
+    <label class="ctl" for="hidezero"><input type="checkbox" id="hidezero" checked> 隐藏没人订的款式</label>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <div class="legend" id="legend"></div>
+  <div id="forms"></div>
+  <footer>“建议备货”= 已订件数 ×（1 + 余量），向上取整。数据每 10 分钟左右从 Google 表单同步一次，本页每 5 分钟自动刷新。</footer>
+</div>
+<script>
+const DATA = {"updated": "2026-11-16 01:18", "forms": [{"form": "ed95", "orders": 20, "items": [{"form": "ed95", "category": "スローガン", "item": "Aura", "by_date": {"11/22（日）": 1, "11/21（土）": 2}}, {"form": "ed95", "category": "スローガン", "item": "Wink", "by_date": {"11/21（土）": 4}}, {"form": "ed95", "category": "スローガン", "item": "Halo", "by_date": {"11/21（土）": 3, "11/22（日）": 1}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "Ribbon", "by_date": {"11/21（土）": 3, "11/22（日）": 1}}, {"form": "ed95", "category": "スローガン", "item": "black", "by_date": {}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini black", "by_date": {}}, {"form": "ed95", "category": "スローガン", "item": "cuddle", "by_date": {"11/22（日）": 1}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini cuddle", "by_date": {"11/22（日）": 1}}, {"form": "ed95", "category": "スローガン", "item": "skyblue", "by_date": {"11/21（土）": 4}}, {"form": "ed95", "category": "ミニスローガンキーホルダー", "item": "mini skyblue", "by_date": {"11/21（土）": 1}}, {"form": "ed95", "category": "スローガン", "item": "dawn 60*30", "by_date": {}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Mini Bubblegum", "by_date": {}}, {"form": "ed95", "category": "うちわ", "item": "Bubbglegum", "by_date": {"11/21（土）": 5}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Mini Sunshine", "by_date": {"11/21（土）": 1, "11/22（日）": 1}}, {"form": "ed95", "category": "うちわ", "item": "Sunshine", "by_date": {"11/22（日）": 3, "11/21（土）": 1}}, {"form": "ed95", "category": "ミニうちわキーホルダー", "item": "Pink", "by_date": {}}], "notes": ["第 9 张订单的「スローガン Aura」填的是「0, 1」，按 1 件计算，请核对"]}, {"form": "k2", "orders": 14, "items": [{"form": "k2", "category": "スローガン", "item": "HEARTBEAT", "by_date": {"11/21（土）": 2, "11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "NOT PERSONAL", "by_date": {"11/21（土）": 9, "11/22（日）": 2}}, {"form": "k2", "category": "スローガン", "item": "ETHEREAL", "by_date": {"11/21（土）": 2, "11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "GUMMY", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "スローガン", "item": "ANGEL", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "JUNGLE", "by_date": {"11/22（日）": 1}}, {"form": "k2", "category": "スローガン", "item": "BREEZE", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "スローガン", "item": "GLOW", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "EMERALD", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "MAGNETIC", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "DIARY(KOREAN)", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "DIRAY(CHINESE)", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "ALLURING", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "PRETTY U", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "TAKOYAKI", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "VOGUE", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "REF:RAIN", "by_date": {}}, {"form": "k2", "category": "スローガン", "item": "BLANC", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "CATCH CATCH", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "うちわ", "item": "PASTEL", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "LABEL", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "元气", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "FLUFFY", "by_date": {}}, {"form": "k2", "category": "うちわ", "item": "MOCHI", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "HEARTBEAT", "by_date": {"11/21（土）": 4, "11/22（日）": 2}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "PAWSTIVE", "by_date": {"11/21（土）": 3}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "HALO", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "BREEZE", "by_date": {"11/21（土）": 1}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "DEAMY", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "NOTE", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "PRETTY U", "by_date": {}}, {"form": "k2", "category": "ミニスローガンキーホルダー", "item": "VOUGE", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "CATCH CATCH", "by_date": {"11/21（土）": 2}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "YUMMY", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "元气", "by_date": {}}, {"form": "k2", "category": "ミニうちわキーホルダー", "item": "MOCHI", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "GAKURAN", "by_date": {"11/21（土）": 2}}, {"form": "k2", "category": "ミニキーホルダー", "item": "CINNAMOROLL", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "FUFFLY", "by_date": {}}, {"form": "k2", "category": "ミニキーホルダー", "item": "ALIEN", "by_date": {}}], "notes": []}, {"form": "unit", "orders": 9, "items": [{"form": "unit", "category": "スローガン", "item": "Wonderland", "by_date": {"11/21（土）": 1}}, {"form": "unit", "category": "スローガン", "item": "Echo", "by_date": {"11/22（日）": 1}}, {"form": "unit", "category": "其他", "item": "J x J", "by_date": {"11/22（日）": 1}}, {"form": "unit", "category": "ミニうちわキーホルダー", "item": "Daydream", "by_date": {"11/21（土）": 6, "11/22（日）": 1}}, {"form": "unit", "category": "うちわ", "item": "Daydream", "by_date": {"11/21（土）": 5, "11/22（日）": 2}}], "notes": []}], "errors": []};
+const COLORS = ['var(--d0)', 'var(--d1)', 'var(--d2)', 'var(--d3)'];
+const CAT_ORDER = ['スローガン', 'うちわ', 'ミニスローガンキーホルダー', 'ミニうちわキーホルダー', 'ミニキーホルダー', '其他'];
+const state = { form: '全部', buffer: 0.2, hideZero: true };
+try { Object.assign(state, JSON.parse(localStorage.getItem('stock-view') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('stock-view', JSON.stringify(state)); } catch (e) {} };
+
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'style') n.style.cssText = v; else if (k === 'class') n.className = v; else n.setAttribute(k, v);
+  }
+  for (const k of kids) n.append(k);
+  return n;
+};
+const total = (it) => Object.values(it.by_date).reduce((a, b) => a + b, 0);
+const suggest = (q) => (q ? Math.ceil(q * (1 + state.buffer) - 1e-9) : 0);
+
+function render() {
+  const forms = DATA.forms;
+  const dates = Array.from(new Set(forms.flatMap((f) => f.items.flatMap((it) => Object.keys(it.by_date))))).sort((a, b) => {
+    const p = (s) => (s.match(/^(\d+)\/(\d+)/) || [0, 99, 99]).slice(1).map(Number);
+    const [am, ad] = p(a), [bm, bd] = p(b); return am - bm || ad - bd;
+  });
+  const color = (d) => COLORS[dates.indexOf(d) % COLORS.length];
+  const shown = forms.filter((f) => state.form === '全部' || f.form === state.form);
+
+  document.getElementById('updated').textContent = `数据更新于 ${DATA.updated}（北京时间），有新订单时自动更新`;
+
+  const banners = document.getElementById('banners');
+  banners.replaceChildren();
+  if (DATA.errors.length) banners.append(el('div', { class: 'banner bad' }, '有表格没读到，下面的数字不含这些表：', el('ul', {}, ...DATA.errors.map((e) => el('li', {}, e)))));
+  const notes = shown.flatMap((f) => (f.notes || []).map((n) => `${f.form}：${n}`));
+  if (notes.length) banners.append(el('div', { class: 'banner warn' }, '需要核对：', el('ul', {}, ...notes.map((n) => el('li', {}, n)))));
+
+  const tabs = document.getElementById('tabs');
+  tabs.replaceChildren(...['全部', ...forms.map((f) => f.form)].map((name) => {
+    const b = el('button', { type: 'button', 'aria-pressed': String(state.form === name) }, name);
+    b.onclick = () => { state.form = name; save(); render(); };
+    return b;
+  }));
+
+  const items = shown.flatMap((f) => f.items);
+  const byDate = Object.fromEntries(dates.map((d) => [d, items.reduce((s, it) => s + (it.by_date[d] || 0), 0)]));
+  const pieces = items.reduce((s, it) => s + total(it), 0);
+  const stock = items.reduce((s, it) => s + suggest(total(it)), 0);
+  const tile = (k, v, c) => el('div', { class: 'tile' }, el('div', { class: 'k' }, ...(c ? [el('i', { class: 'sw', style: `background:${c}` })] : []), k), el('div', { class: 'v' }, String(v)));
+  document.getElementById('tiles').replaceChildren(
+    tile('订单数', shown.reduce((s, f) => s + f.orders, 0)),
+    tile('已订件数', pieces),
+    ...dates.map((d) => tile(`${d} 取货`, byDate[d], color(d))),
+    tile('建议备货合计', stock),
+  );
+  document.getElementById('legend').replaceChildren(...dates.map((d) => el('span', {}, el('i', { class: 'sw', style: `background:${color(d)}` }), ` ${d} 取货`)));
+
+  const max = Math.max(1, ...items.map(total));
+  const box = document.getElementById('forms');
+  box.replaceChildren();
+  box.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+  for (const f of shown) {
+    const rows = f.items.filter((it) => !state.hideZero || total(it) > 0);
+    const fPieces = f.items.reduce((s, it) => s + total(it), 0);
+    const sec = el('section', { class: 'form' }, el('h2', {}, f.form, el('small', {}, `${f.orders} 张订单 · 已订 ${fPieces} 件`)));
+    if (!rows.length) { sec.append(el('p', { class: 'empty' }, '还没有订单。')); box.append(sec); continue; }
+    const thead = el('tr', {}, el('th', {}, '款式'), ...dates.map((d) => el('th', { class: 'n' }, d)), el('th', { class: 'n' }, '已订'), el('th', { class: 'barcell' }, ''), el('th', { class: 'n' }, '建议备货'));
+    const tbody = el('tbody');
+    const cats = Array.from(new Set(rows.map((r) => r.category))).sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
+    for (const c of cats) {
+      tbody.append(el('tr', { class: 'cat' }, el('td', { colspan: String(dates.length + 4) }, c)));
+      rows.filter((r) => r.category === c).sort((a, b) => total(b) - total(a)).forEach((it) => {
+        const t = total(it);
+        const bar = el('div', { class: 'bar', role: 'img', 'aria-label': dates.map((d) => `${d} ${it.by_date[d] || 0} 件`).join('，') },
+          ...dates.filter((d) => it.by_date[d]).map((d) => el('span', { style: `width:${(it.by_date[d] / max) * 100}%;background:${color(d)}` })));
+        tbody.append(el('tr', { class: t ? '' : 'zero' },
+          el('td', {}, it.item),
+          ...dates.map((d) => el('td', { class: 'n' }, it.by_date[d] ? String(it.by_date[d]) : '·')),
+          el('td', { class: 'n' }, String(t)),
+          el('td', { class: 'barcell' }, bar),
+          el('td', { class: 'n sug' }, String(suggest(t)))));
+      });
+    }
+    sec.append(el('div', { class: 'scroll' }, el('table', {}, el('thead', {}, thead), tbody)));
+    box.append(sec);
+  }
+}
+
+const buf = document.getElementById('buffer');
+const hz = document.getElementById('hidezero');
+buf.value = String(state.buffer); hz.checked = state.hideZero;
+buf.onchange = () => { state.buffer = +buf.value; save(); render(); };
+hz.onchange = () => { state.hideZero = hz.checked; save(); render(); };
+if (!DATA.forms.some((f) => f.form === state.form)) state.form = '全部';
+render();
+setTimeout(() => location.reload(), 5 * 60 * 1000);
+</script>
+</body>
+</html>

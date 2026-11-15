@@ -53,13 +53,10 @@
   .group > summary .t { font-size: 20px; font-weight: 700; }
   .group > summary small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .group[open] > summary { margin-bottom: 2px; }
-  .sub { display: flex; flex-direction: column; gap: 8px; }
-  .sub h3 { margin: 6px 0 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; }
-  .sub h3 small { font-size: 12px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-  .seg button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--panel); color: var(--fg); cursor: pointer; }
-  .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-  .seg button:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--d0); outline-offset: -2px; }
+  .catblock { display: flex; flex-direction: column; gap: 8px; }
+  .catblock h3 { margin: 6px 0 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; }
+  .catblock h3 small { font-size: 12px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .linkbtn:focus-visible { outline: 2px solid var(--d0); outline-offset: 2px; }
   .linkbtn { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 4px 2px; cursor: pointer; text-decoration: underline; }
   .board { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
   .row { display: grid; grid-template-columns: 2.2em 76px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
@@ -99,10 +96,6 @@
   <div id="banners"></div>
   <div class="controls">
     <div class="tabs" id="tabs" role="group" aria-label="选择表单"></div>
-    <div class="seg" id="grouping" role="group" aria-label="分组方式">
-      <button type="button" data-g="cat">按类型</button>
-      <button type="button" data-g="form">按个人</button>
-    </div>
     <label class="ctl" for="hidezero"><input type="checkbox" id="hidezero" checked> 隐藏没人订的款式</label>
   </div>
   <div class="tiles" id="tiles"></div>
@@ -114,7 +107,7 @@
 <script>
 const DATA = /*__DATA__*/null;
 const COLORS = ['var(--d0)', 'var(--d1)', 'var(--d2)', 'var(--d3)'];
-const state = { form: '全部', hideZero: true, group: 'cat', closed: {} };
+const state = { form: '全部', hideZero: true, closed: {} };
 try { Object.assign(state, JSON.parse(localStorage.getItem('stock-view') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('stock-view', JSON.stringify(state)); } catch (e) {} };
 
@@ -160,7 +153,6 @@ function render() {
   const notes = shown.flatMap((f) => (f.notes || []).map((n) => `${f.form}：${n}`));
   if (notes.length) banners.append(el('div', { class: 'banner warn' }, '需要核对：', el('ul', {}, ...notes.map((n) => el('li', {}, n)))));
 
-  document.querySelectorAll('#grouping button').forEach((b) => b.setAttribute('aria-pressed', String(state.group === b.dataset.g)));
   const tabs = document.getElementById('tabs');
   tabs.replaceChildren(...['全部', ...forms.map((f) => f.form)].map((name) => {
     const b = el('button', { type: 'button', 'aria-pressed': String(state.form === name) }, name);
@@ -184,7 +176,7 @@ function render() {
     dates.map((d) => `${short(d)} ${list.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ');
   const catSort = (a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99;
 
-  const board = (list, tagOf) => {
+  const board = (list) => {
     const rows = list.filter((it) => !state.hideZero || total(it) > 0)
       .sort((x, y) => total(y) - total(x) || x.form.localeCompare(y.form) || x.item.localeCompare(y.item));
     if (!rows.length) return el('p', { class: 'empty' }, '还没有订单。');
@@ -201,7 +193,7 @@ function render() {
         it.img ? picButton(it) : el('span', { class: 'noimg' }, '无图'),
         el('div', { class: 'info' },
           el('div', { class: 'name' }, it.item),
-          el('div', { class: 'meta' }, ...(tagOf ? [el('span', { class: 'tag' }, tagOf(it))] : []), ...split),
+          el('div', { class: 'meta' }, ...split),
           bar),
         el('span', { class: 'qty' }, String(t), el('small', {}, '件')));
     }));
@@ -215,25 +207,15 @@ function render() {
     return d;
   };
 
-  if (state.group === 'form') {
     box.replaceChildren(...shown.map((f) => group('form:' + f.form, f.form, sumLine(f.items, `${f.orders} 张订单`),
       ...Array.from(new Set(f.items.map((it) => it.category))).sort(catSort)
         .filter((c) => !state.hideZero || f.items.some((it) => it.category === c && total(it) > 0))
         .map((c) => {
           const list = f.items.filter((it) => it.category === c);
-          return el('div', { class: 'sub' }, el('h3', {}, c, el('small', {}, sumLine(list))), board(list));
+          return el('div', { class: 'catblock' }, el('h3', {}, c, el('small', {}, sumLine(list))), board(list));
         }))));
-  } else {
-    box.replaceChildren(...Array.from(new Set(items.map((it) => it.category))).sort(catSort).map((c) => {
-      const list = items.filter((it) => it.category === c);
-      return group('cat:' + c, c, sumLine(list), board(list, (it) => it.form));
-    }));
-  }
 }
 
-document.querySelectorAll('#grouping button').forEach((b) => {
-  b.onclick = () => { state.group = b.dataset.g; save(); render(); };
-});
 const setAll = (open) => {
   document.querySelectorAll('#forms details.group').forEach((d) => {
     if (open) delete state.closed[d.dataset.key]; else state.closed[d.dataset.key] = 1;

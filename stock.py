@@ -128,7 +128,8 @@ def parse_form(name, rows, products):
     imgs = products.get("images", {})
     prices = products.get("prices", {})
     for (c, it), v in items.items():
-        v["price"] = prices.get(f"{name}|{c}|{it}") or prices.get(f"{name}|{it}") or v["price"]
+        v["price"] = (prices.get(f"{name}|{c}|{it}") or prices.get(f"{name}|{it}") or v["price"]
+                      or prices.get(f"{name}|{c}") or prices.get(f"{name}|{CAT_ZH.get(c, c)}"))
         v["category"] = CAT_ZH.get(c, c)
         v["img"] = imgs.get(f"{name}|{c}|{it}") or imgs.get(f"{name}|{it}")
     for i, n in enumerate(notes):

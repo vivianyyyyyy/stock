@@ -123,6 +123,7 @@ const total = (it) => Object.values(it.by_date).reduce((a, b) => a + b, 0);
 const yen = (n) => '¥' + n.toLocaleString('ja-JP');
 const amount = (list) => list.reduce((s, it) => s + (it.price || 0) * total(it), 0);
 const noPrice = (list) => list.filter((it) => !it.price && total(it) > 0);
+const amt = (list) => (amount(list) === 0 && noPrice(list).length ? '单价待定' : yen(amount(list)));
 
 const CAT_ORDER = ['手幅', '小手幅', '团扇', '团扇钥匙链', '小手幅/团扇钥匙链', '其他'];
 const lb = document.getElementById('lightbox');
@@ -154,8 +155,9 @@ function render() {
   banners.replaceChildren();
   if (DATA.errors.length) banners.append(el('div', { class: 'banner bad' }, '有表格没读到，下面的数字不含这些表：', el('ul', {}, ...DATA.errors.map((e) => el('li', {}, e)))));
   const notes = shown.flatMap((f) => (f.notes || []).map((n) => `${f.form}：${n}`));
-  const np = shown.flatMap((f) => noPrice(f.items).map((it) => `${f.form} · ${it.category} · ${it.item}`));
-  if (np.length) banners.append(el('div', { class: 'banner warn' }, '这些款式表头里没写单价，总价里没算进去（可以在 products.json 的 prices 里补）：', el('ul', {}, ...np.map((n) => el('li', {}, n)))));
+  const np = shown.map((f) => [f.form, noPrice(f.items)]).filter(([, l]) => l.length)
+    .map(([form, l]) => `${form}：${l.length} 款没有单价（${l.slice(0, 4).map((it) => it.item).join('、')}${l.length > 4 ? ' 等' : ''}）`);
+  if (np.length) banners.append(el('div', { class: 'banner warn' }, '还没有单价的款式不算进总价：', el('ul', {}, ...np.map((n) => el('li', {}, n)))));
   if (notes.length) banners.append(el('div', { class: 'banner warn' }, '需要核对：', el('ul', {}, ...notes.map((n) => el('li', {}, n)))));
 
   const tabs = document.getElementById('tabs');
@@ -172,14 +174,14 @@ function render() {
   document.getElementById('tiles').replaceChildren(
     tile('订单数', shown.reduce((s, f) => s + f.orders, 0)),
     tile('已订件数', pieces),
-    tile('总价', yen(amount(items))),
-    ...(state.form === '全部' ? shown.map((f) => tile(`${f.form} 总价`, yen(amount(f.items)))) : []),
+    tile(noPrice(items).length && amount(items) ? '总价（不含待定）' : '总价', amt(items)),
+    ...(state.form === '全部' ? shown.map((f) => tile(`${f.form} 总价`, amt(f.items))) : []),
     ...dates.map((d) => tile(`${d} 取货`, byDate[d], color(d))),
   );
 
   const box = document.getElementById('forms');
   const short = (d) => d.replace(/（.*/, '');
-  const sumLine = (list, extra) => (extra ? extra + ' · ' : '') + `共 ${list.reduce((s, it) => s + total(it), 0)} 件 · ${yen(amount(list))} · ` +
+  const sumLine = (list, extra) => (extra ? extra + ' · ' : '') + `共 ${list.reduce((s, it) => s + total(it), 0)} 件 · ${amt(list)} · ` +
     dates.map((d) => `${short(d)} ${list.reduce((s, it) => s + (it.by_date[d] || 0), 0)}`).join(' · ');
   const catSort = (a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99;
 

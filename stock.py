@@ -45,9 +45,15 @@ def split_item(text):
     return None
 
 
+def header_price(h):
+    """表头里的单价，例如「Aura 2,500円」-> 2500；没写就返回 None。"""
+    m = re.search(r"([\d,]+)\s*円", re.sub(r"\s+", " ", h))
+    return int(m.group(1).replace(",", "")) if m and m.group(1).replace(",", "") else None
+
+
 def parse_header(h):
     h = re.sub(r"\s+", " ", h)  # 表头里有全角空格、窄空格等，统一成普通空格
-    h = re.sub(r"\s*[\d,]+円", "", h).strip()
+    h = re.sub(r"\s*[\d,]+\s*円", "", h).strip()
     m = re.match(r"^(.*?)\s*\[(.*)\]\s*$", h)
     outside, inside = (m.group(1).strip(), m.group(2).strip()) if m else (h, "")
     if inside == "個数":
@@ -98,15 +104,19 @@ def parse_form(name, rows, products):
     for i, h in enumerate(hdr):
         if 1 < i < di:
             it, c = parse_header(h)
-            cols.append((i, it, fix.get(f"{name}|{it}", c)))
-    items = {(c, it): {"form": name, "category": c, "item": it, "by_date": {}} for _, it, c in cols}
+            cols.append((i, it, fix.get(f"{name}|{it}", c), header_price(h)))
+    items = {}
+    for _, it, c, price in cols:
+        items.setdefault((c, it), {"form": name, "category": c, "item": it, "by_date": {}, "price": None})
+        if price:
+            items[(c, it)]["price"] = price
     orders, notes = 0, []
     for r in rows[1:]:
         if not any(x.strip() for x in r):
             continue
         orders += 1
         d = norm_date(r[di]) if di < len(r) else "未填"
-        for i, it, c in cols:
+        for i, it, c, _ in cols:
             v = r[i].strip() if i < len(r) else ""
             nums = [int(float(x)) for x in re.findall(r"\d+(?:\.\d+)?", v)]
             q = max(nums) if nums else 0
@@ -116,7 +126,9 @@ def parse_form(name, rows, products):
                 bd = items[(c, it)]["by_date"]
                 bd[d] = bd.get(d, 0) + q
     imgs = products.get("images", {})
+    prices = products.get("prices", {})
     for (c, it), v in items.items():
+        v["price"] = prices.get(f"{name}|{c}|{it}") or prices.get(f"{name}|{it}") or v["price"]
         v["category"] = CAT_ZH.get(c, c)
         v["img"] = imgs.get(f"{name}|{c}|{it}") or imgs.get(f"{name}|{it}")
     for i, n in enumerate(notes):

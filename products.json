@@ -1,5 +1,5 @@
 {
-  "_说明": "images：款式对应的图片（docs/img 里的文件名）。键是「表单|款式名」，同一表单里大小款同名时用「表单|分类|款式名」。category：表单里没写分类的款式，在这里补上。prices：表头里没写单价时在这里补，值是日元整数。键可以是「表单|分类」（如「ed95|手幅」，整类同价），也可以和 images 一样精确到款式（优先用款式价）。",
+  "_说明": "images：款式对应的图片（docs/img 里的文件名）。键是「表单|款式名」，同一表单里大小款同名时用「表单|分类|款式名」。category：表单里没写分类的款式，在这里补上。prices：表头里没写单价时在这里补，值是日元整数。键可以是「表单|分类」（如「ed95|手幅」，整类同价），也可以和 images 一样精确到款式（优先用款式价）。menu：客人看的菜单 menu.html。sheet 是「没货」表格的 ID；names 改菜单上显示的名字（键是「表单|分类|款式」，分类用中文）；hide 里的款式不在菜单上出现。",
   "images": {
     "ed95|Aura": "ed95-aura.jpg",
     "ed95|Wink": "ed95-wink.jpg",
@@ -81,5 +81,17 @@
     "unit|小手幅": 1000,
     "unit|团扇钥匙链": 1000,
     "unit|小手幅/团扇钥匙链": 1000
+  },
+  "menu": {
+    "sheet": "",
+    "names": {
+      "ed95|团扇|Bubbglegum": "Bubblegum",
+      "k2|手幅|DIRAY(CHINESE)": "DIARY (CHINESE)",
+      "k2|手幅|DIARY(KOREAN)": "DIARY (KOREAN)",
+      "k2|小手幅|DEAMY": "DREAMY",
+      "k2|小手幅|VOUGE": "VOGUE",
+      "k2|团扇钥匙链|FUFFLY": "FLUFFY"
+    },
+    "hide": []
   }
 }

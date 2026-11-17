@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>グッズメニュー</title>
+<style>
+  :root {
+    --bg: #faf8f5; --panel: #ffffff; --fg: #1d1b20; --muted: #6b6672; --line: #e8e3dc;
+    --accent: #d2386c; --out: #c62828; --out-bg: rgba(255,255,255,.72);
+    --font: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "PingFang SC", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141216; --panel: #1e1b21; --fg: #f1edf3; --muted: #a59fab; --line: #322d37;
+      --accent: #f06292; --out: #ff6b6b; --out-bg: rgba(20,18,22,.72);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.45; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+  header { text-align: center; padding: 8px 0 16px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: .06em; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  nav { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0 10px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { flex: none; font: inherit; font-size: 15px; font-weight: 600; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+  nav button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  nav button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  label.ctl { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: 2px 0 6px; }
+  section { margin-top: 18px; }
+  h2 { font-size: 22px; margin: 18px 0 4px; letter-spacing: .04em; }
+  h3 { font-size: 15px; margin: 14px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  h3 .en { font-size: 11px; color: var(--muted); letter-spacing: .08em; font-weight: 500; }
+  h3 .price { margin-left: auto; color: var(--accent); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; padding: 0; font: inherit; color: inherit; text-align: left; cursor: zoom-in; }
+  .card .pic { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--bg); }
+  .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .cap { padding: 8px 10px 10px; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+  .card .nm { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+  .card .pr { color: var(--accent); font-weight: 700; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .card.out .pic, .card.out .cap { opacity: .45; filter: grayscale(1); }
+  .card.out::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top right, transparent calc(50% - 2px), var(--out) calc(50% - 2px), var(--out) calc(50% + 2px), transparent calc(50% + 2px)),
+                linear-gradient(to top left, transparent calc(50% - 2px), var(--out) calc(50% - 2px), var(--out) calc(50% + 2px), transparent calc(50% + 2px)); }
+  .badge { position: absolute; z-index: 2; left: 50%; top: 42%; transform: translate(-50%, -50%) rotate(-8deg); background: var(--out); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .08em; padding: 4px 10px; border-radius: 6px; white-space: nowrap; text-align: center; line-height: 1.25; }
+  .badge small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 28px; }
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: grid; place-items: center; padding: 16px; z-index: 10; cursor: zoom-out; }
+  .lightbox[hidden] { display: none; }
+  .lightbox figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: min(94vw, 720px); }
+  .lightbox img { max-width: 100%; max-height: 80vh; border-radius: 10px; }
+  .lightbox figcaption { color: #fff; font-size: 15px; text-align: center; }
+  @media (max-width: 420px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>GOODS MENU</h1>
+    <p class="sub">グッズメニュー · 画像をタップで拡大</p>
+  </header>
+  <nav id="tabs" aria-label="グループ"></nav>
+  <label class="ctl" for="hideout"><input type="checkbox" id="hideout"> 完売を表示しない / Hide sold out</label>
+  <main id="menu"></main>
+  <p class="note" id="note">在庫状況は自動で更新されます · Stock updates automatically</p>
+  <div class="lightbox" id="lb" hidden><figure><img alt=""><figcaption></figcaption></figure></div>
+</div>
+<script>
+const MENU = {"forms": ["ed95", "k2", "unit"], "sheet": "", "items": [{"form": "ed95", "category": "手幅", "item": "Aura", "name": "Aura", "price": 2500, "img": "ed95-aura.jpg"}, {"form": "ed95", "category": "手幅", "item": "Wink", "name": "Wink", "price": 2500, "img": "ed95-wink.jpg"}, {"form": "ed95", "category": "手幅", "item": "Halo", "name": "Halo", "price": 2500, "img": "ed95-halo.jpg"}, {"form": "ed95", "category": "小手幅", "item": "Ribbon", "name": "Ribbon", "price": 1000, "img": "ed95-ribbon.jpg"}, {"form": "ed95", "category": "手幅", "item": "black", "name": "black", "price": 2500, "img": "ed95-black.jpg"}, {"form": "ed95", "category": "小手幅", "item": "mini black", "name": "mini black", "price": 1000, "img": "ed95-black.jpg"}, {"form": "ed95", "category": "手幅", "item": "cuddle", "name": "cuddle", "price": 2500, "img": "ed95-cuddle.jpg"}, {"form": "ed95", "category": "小手幅", "item": "mini cuddle", "name": "mini cuddle", "price": 1000, "img": "ed95-cuddle-mini.jpg"}, {"form": "ed95", "category": "手幅", "item": "skyblue", "name": "skyblue", "price": 2500, "img": "ed95-skyblue.jpg"}, {"form": "ed95", "category": "小手幅", "item": "mini skyblue", "name": "mini skyblue", "price": 1000, "img": "ed95-skyblue.jpg"}, {"form": "ed95", "category": "手幅", "item": "dawn 60*30", "name": "dawn 60*30", "price": 2500, "img": "ed95-dawn.jpg"}, {"form": "ed95", "category": "团扇钥匙链", "item": "Mini Bubblegum", "name": "Mini Bubblegum", "price": 1000, "img": "ed95-bubblegum-mini.jpg"}, {"form": "ed95", "category": "团扇", "item": "Bubbglegum", "name": "Bubblegum", "price": 2500, "img": "ed95-bubblegum.jpg"}, {"form": "ed95", "category": "团扇钥匙链", "item": "Mini Sunshine", "name": "Mini Sunshine", "price": 1000, "img": "ed95-sunshine.jpg"}, {"form": "ed95", "category": "团扇", "item": "Sunshine", "name": "Sunshine", "price": 2500, "img": "ed95-sunshine.jpg"}, {"form": "ed95", "category": "团扇钥匙链", "item": "Pink", "name": "Pink", "price": 1000, "img": "ed95-pink-mini.jpg"}, {"form": "k2", "category": "手幅", "item": "HEARTBEAT", "name": "HEARTBEAT", "price": 2500, "img": "k2-heartbeat.jpg"}, {"form": "k2", "category": "手幅", "item": "NOT PERSONAL", "name": "NOT PERSONAL", "price": 2500, "img": "k2-not-personal.jpg"}, {"form": "k2", "category": "手幅", "item": "ETHEREAL", "name": "ETHEREAL", "price": 2500, "img": "k2-ethereal.jpg"}, {"form": "k2", "category": "手幅", "item": "GUMMY", "name": "GUMMY", "price": 2500, "img": "k2-gummy.jpg"}, {"form": "k2", "category": "手幅", "item": "ANGEL", "name": "ANGEL", "price": 2500, "img": "k2-angel.jpg"}, {"form": "k2", "category": "手幅", "item": "JUNGLE", "name": "JUNGLE", "price": 2500, "img": "k2-jungle.jpg"}, {"form": "k2", "category": "手幅", "item": "BREEZE", "name": "BREEZE", "price": 2500, "img": "k2-breeze.jpg"}, {"form": "k2", "category": "手幅", "item": "GLOW", "name": "GLOW", "price": 2500, "img": "k2-glow.jpg"}, {"form": "k2", "category": "手幅", "item": "EMERALD", "name": "EMERALD", "price": 2500, "img": "k2-emerald.jpg"}, {"form": "k2", "category": "手幅", "item": "MAGNETIC", "name": "MAGNETIC", "price": 2500, "img": "k2-magnetic.jpg"}, {"form": "k2", "category": "手幅", "item": "DIARY(KOREAN)", "name": "DIARY (KOREAN)", "price": 2500, "img": "k2-diary-kr.jpg"}, {"form": "k2", "category": "手幅", "item": "DIRAY(CHINESE)", "name": "DIARY (CHINESE)", "price": 2500, "img": "k2-diary-cn.jpg"}, {"form": "k2", "category": "手幅", "item": "ALLURING", "name": "ALLURING", "price": 2500, "img": "k2-alluring.jpg"}, {"form": "k2", "category": "手幅", "item": "PRETTY U", "name": "PRETTY U", "price": 2500, "img": "k2-prettyu.jpg"}, {"form": "k2", "category": "手幅", "item": "TAKOYAKI", "name": "TAKOYAKI", "price": 2500, "img": "k2-takoyaki.jpg"}, {"form": "k2", "category": "手幅", "item": "VOGUE", "name": "VOGUE", "price": 2500, "img": "k2-vogue.jpg"}, {"form": "k2", "category": "手幅", "item": "REF:RAIN", "name": "REF:RAIN", "price": 2500, "img": "k2-refrain.jpg"}, {"form": "k2", "category": "手幅", "item": "BLANC", "name": "BLANC", "price": 2500, "img": "k2-blanc.jpg"}, {"form": "k2", "category": "团扇", "item": "CATCH CATCH", "name": "CATCH CATCH", "price": 2500, "img": "k2-catchcatch.jpg"}, {"form": "k2", "category": "团扇", "item": "PASTEL", "name": "PASTEL", "price": 2500, "img": "k2-pastel.jpg"}, {"form": "k2", "category": "团扇", "item": "LABEL", "name": "LABEL", "price": 2500, "img": "k2-label.jpg"}, {"form": "k2", "category": "团扇", "item": "元气", "name": "元气", "price": 2500, "img": "k2-genki.jpg"}, {"form": "k2", "category": "团扇", "item": "FLUFFY", "name": "FLUFFY", "price": 2500, "img": "k2-fluffy.jpg"}, {"form": "k2", "category": "团扇", "item": "MOCHI", "name": "MOCHI", "price": 2500, "img": "k2-mochi.jpg"}, {"form": "k2", "category": "小手幅", "item": "HEARTBEAT", "name": "HEARTBEAT", "price": 1000, "img": "k2-heartbeat-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "PAWSTIVE", "name": "PAWSTIVE", "price": 1000, "img": "k2-pawstive-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "HALO", "name": "HALO", "price": 1000, "img": "k2-halo-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "BREEZE", "name": "BREEZE", "price": 1000, "img": "k2-breeze-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "DEAMY", "name": "DREAMY", "price": 1000, "img": "k2-dreamy-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "NOTE", "name": "NOTE", "price": 1000, "img": "k2-note-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "PRETTY U", "name": "PRETTY U", "price": 1000, "img": "k2-prettyu-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "VOUGE", "name": "VOGUE", "price": 1000, "img": "k2-vogue-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "CATCH CATCH", "name": "CATCH CATCH", "price": 1000, "img": "k2-catchcatch-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "YUMMY", "name": "YUMMY", "price": 1000, "img": "k2-yummy-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "元气", "name": "元气", "price": 1000, "img": "k2-genki-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "MOCHI", "name": "MOCHI", "price": 1000, "img": "k2-mochi-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "GAKURAN", "name": "GAKURAN", "price": 1000, "img": "k2-gakuran-mini.jpg"}, {"form": "k2", "category": "小手幅", "item": "CINNAMOROLL", "name": "CINNAMOROLL", "price": 1000, "img": "k2-cinnamoroll-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "FUFFLY", "name": "FLUFFY", "price": 1000, "img": "k2-fluffy-mini.jpg"}, {"form": "k2", "category": "团扇钥匙链", "item": "ALIEN", "name": "ALIEN", "price": 1000, "img": "k2-alien-mini.jpg"}, {"form": "unit", "category": "手幅", "item": "Wonderland", "name": "Wonderland", "price": 2500, "img": "unit-wonderland.jpg"}, {"form": "unit", "category": "手幅", "item": "Echo", "name": "Echo", "price": 2500, "img": "unit-echo.jpg"}, {"form": "unit", "category": "手幅", "item": "J x J", "name": "J x J", "price": 2500, "img": "unit-jxj.jpg"}, {"form": "unit", "category": "团扇钥匙链", "item": "Daydream", "name": "Daydream", "price": 1000, "img": "unit-daydream-mini.jpg"}, {"form": "unit", "category": "团扇", "item": "Daydream", "name": "Daydream", "price": 2500, "img": "unit-daydream.jpg"}]};
+const CATS = {
+  '手幅': ['スローガン', 'SLOGAN'],
+  '小手幅': ['ミニスローガンキーホルダー', 'MINI SLOGAN KEYCHAIN'],
+  '团扇': ['うちわ', 'UCHIWA'],
+  '团扇钥匙链': ['ミニうちわキーホルダー', 'MINI UCHIWA KEYCHAIN'],
+  '小手幅/团扇钥匙链': ['ミニキーホルダー', 'MINI KEYCHAIN'],
+};
+const ORDER = Object.keys(CATS);
+const norm = (s) => String(s || '').toLowerCase().replace(/[\s　]+/g, '');
+const key = (f, c, i) => [f, c, i].map(norm).join('|');
+const yen = (n) => '¥' + n.toLocaleString('ja-JP');
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') n.className = v; else n.setAttribute(k, v); }
+  for (const k of kids) n.append(k);
+  return n;
+};
+let soldOut = new Set();
+const state = { tab: MENU.forms[0], hideOut: false };
+try { Object.assign(state, JSON.parse(localStorage.getItem('menu-view') || '{}')); } catch (e) {}
+if (!MENU.forms.includes(state.tab)) state.tab = MENU.forms[0];
+const save = () => { try { localStorage.setItem('menu-view', JSON.stringify(state)); } catch (e) {} };
+
+const lb = document.getElementById('lb');
+lb.onclick = () => { lb.hidden = true; };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; });
+
+function render() {
+  document.getElementById('tabs').replaceChildren(...MENU.forms.map((f) => {
+    const b = el('button', { type: 'button', 'aria-pressed': String(state.tab === f) }, f.toUpperCase());
+    b.onclick = () => { state.tab = f; save(); render(); window.scrollTo({ top: 0 }); };
+    return b;
+  }));
+  const items = MENU.items.filter((it) => it.form === state.tab);
+  const cats = [...new Set(items.map((it) => it.category))].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
+  const sec = el('section', {}, el('h2', {}, state.tab.toUpperCase()));
+  for (const c of cats) {
+    const list = items.filter((it) => it.category === c).map((it) => ({ ...it, out: soldOut.has(key(it.form, it.category, it.name)) }))
+      .filter((it) => !(state.hideOut && it.out))
+      .sort((a, b) => a.out - b.out);
+    if (!list.length) continue;
+    const [jp, en] = CATS[c] || [c, ''];
+    const prices = [...new Set(list.map((it) => it.price).filter(Boolean))];
+    sec.append(el('h3', {}, jp, el('span', { class: 'en' }, en), el('span', { class: 'price' }, prices.length === 1 ? yen(prices[0]) : '')));
+    sec.append(el('div', { class: 'grid' }, ...list.map((it) => {
+      const card = el('button', { type: 'button', class: 'card' + (it.out ? ' out' : ''), 'aria-label': `${it.name} ${jp}${it.out ? ' 完売' : ''}` },
+        el('div', { class: 'pic' }, it.img ? el('img', { src: 'img/' + it.img, alt: '', loading: 'lazy' }) : ''),
+        el('div', { class: 'cap' }, el('span', { class: 'nm' }, it.name), el('span', { class: 'pr' }, it.price ? yen(it.price) : '')));
+      if (it.out) card.append(el('div', { class: 'badge' }, 'SOLD OUT', el('small', {}, '完売')));
+      card.onclick = () => {
+        if (!it.img) return;
+        lb.querySelector('img').src = 'img/' + it.img;
+        lb.querySelector('figcaption').textContent = `${it.name} · ${jp}${it.price ? ' · ' + yen(it.price) : ''}${it.out ? ' · SOLD OUT 完売' : ''}`;
+        lb.hidden = false;
+      };
+      return card;
+    })));
+  }
+  document.getElementById('menu').replaceChildren(sec);
+}
+
+const hz = document.getElementById('hideout');
+hz.checked = state.hideOut;
+hz.onchange = () => { state.hideOut = hz.checked; save(); render(); };
+
+// 在庫表（Google 表格）：列は 表单 / 分类 / 款式 / 没货，「没货」にチェック（または何か記入）で完売
+const truthy = (v) => v === true || (typeof v === 'string' && v.trim() !== '' && !/^(false|0|no|有|有货)$/i.test(v.trim()));
+function loadStock() {
+  if (!MENU.sheet) return;
+  const cb = 'stock_cb_' + Date.now();
+  const s = document.createElement('script');
+  window[cb] = (resp) => {
+    delete window[cb]; s.remove();
+    try {
+      const t = resp.table;
+      const labels = t.cols.map((c) => (c.label || '').trim());
+      let rows = t.rows.map((r) => r.c.map((c) => (c ? (c.v ?? c.f ?? '') : '')));
+      let idx = (name) => labels.indexOf(name);
+      if (idx('款式') < 0 && rows.length) { // 表头没被识别时，把第一行当表头
+        const h = rows.shift().map((x) => String(x).trim());
+        idx = (name) => h.indexOf(name);
+      }
+      const [fi, ci, ii, oi] = ['表单', '分类', '款式', '没货'].map(idx);
+      if ([fi, ci, ii, oi].some((i) => i < 0)) throw new Error('表头不对');
+      soldOut = new Set(rows.filter((r) => truthy(r[oi])).map((r) => key(r[fi], r[ci], r[ii])));
+      document.getElementById('note').textContent = '在庫状況は自動で更新されます · Stock updates automatically';
+      render();
+    } catch (e) { console.warn(e); }
+  };
+  s.onerror = () => { delete window[cb]; s.remove(); };
+  s.src = `https://docs.google.com/spreadsheets/d/${MENU.sheet}/gviz/tq?headers=1&tqx=out:json;responseHandler:${cb}&_=${Date.now()}`;
+  document.head.append(s);
+}
+render();
+loadStock();
+setInterval(loadStock, 30 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStock(); });
+</script>
+</body>
+</html>

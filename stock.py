@@ -17,6 +17,7 @@ CATS = ["ミニスローガンキーホルダー", "ミニうちわキーホル�
 SHARED_CAT = "ミニキーホルダー"
 DATE_COL = "受取可能の日程PICK-UP DATE"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "index.html")
+MENU_OUT = os.path.join(os.path.dirname(OUT), "menu.html")
 
 
 def fetch_csv(sheet_id):
@@ -139,16 +140,40 @@ def parse_form(name, rows, products):
     return {"form": name, "orders": orders, "items": list(items.values()), "notes": notes}
 
 
-def build(data):
-    tpl = open(os.path.join(os.path.dirname(OUT), "..", "template.html"), encoding="utf-8").read()
+def build(data, tpl_name="template.html", slot="/*__DATA__*/null"):
+    tpl = open(os.path.join(os.path.dirname(OUT), "..", tpl_name), encoding="utf-8").read()
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    return tpl.replace("/*__DATA__*/null", payload)
+    return tpl.replace(slot, payload)
 
 
-def unchanged(html):
+def menu_data(forms, products):
+    """给客人看的菜单：只有款式、分类、价格、图片，没有订单数。"""
+    cfg = products.get("menu", {})
+    names, hide = cfg.get("names", {}), set(cfg.get("hide", []))
+    items = []
+    for f in forms:
+        for it in f["items"]:
+            k = f"{f['form']}|{it['category']}|{it['item']}"
+            if k in hide:
+                continue
+            items.append({"form": f["form"], "category": it["category"], "item": it["item"],
+                          "name": names.get(k, it["item"]), "price": it.get("price"), "img": it.get("img")})
+    return {"forms": [f["form"] for f in forms], "sheet": cfg.get("sheet", ""), "items": items}
+
+
+def write_if_changed(path, html):
+    if unchanged(html, path):
+        return False
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return True
+
+
+def unchanged(html, path=OUT):
     """和上次生成的网页比，除了更新时间以外是否完全一样（数据和模板都算）。"""
     try:
-        old = open(OUT, encoding="utf-8").read()
+        old = open(path, encoding="utf-8").read()
     except FileNotFoundError:
         return False
     strip = lambda t: re.sub(r'"updated": "[^"]*"', "", t)
@@ -171,13 +196,12 @@ def main():
         sys.exit("三张表都没读到：" + "；".join(errors))
     now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
     data = {"updated": now, "forms": forms, "errors": errors}
-    html = build(data)
-    if unchanged(html):
+    # 有表格没读到时不动菜单，免得菜单里少了款式
+    if not errors and write_if_changed(MENU_OUT, build(menu_data(forms, products), "menu_template.html", "/*__MENU__*/null")):
+        print(f"已生成 {MENU_OUT}")
+    if not write_if_changed(OUT, build(data)):
         print("数据和模板都没有变化，不改网页")
         return
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w", encoding="utf-8") as f:
-        f.write(html)
     for e in errors:
         print("警告：" + e, file=sys.stderr)
     print(f"已生成 {OUT}（{now}）")

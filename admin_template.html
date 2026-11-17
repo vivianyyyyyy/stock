@@ -159,7 +159,7 @@ const schedule = () => { clearTimeout(timer); timer = setTimeout(flush, 1200); }
 function render() {
   document.getElementById('tabs').replaceChildren(...MENU.forms.map((f) => {
     const n = MENU.items.filter((it) => it.form === f && current().has(key(it))).length;
-    const b = el('button', { type: 'button', 'aria-pressed': String(tab === f) }, f.toUpperCase() + (n ? ` · ${n} 款没货` : ''));
+    const b = el('button', { type: 'button', 'aria-pressed': String(tab === f) }, ((MENU.form_names || {})[f] || f.toUpperCase()) + (n ? ` · ${n} 款没货` : ''));
     b.onclick = () => { tab = f; store.set('stock-admin-tab', f); render(); };
     return b;
   }));

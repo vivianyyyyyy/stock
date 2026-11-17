@@ -159,7 +159,7 @@ def menu_data(forms, products):
                 continue
             items.append({"form": f["form"], "category": it["category"], "item": it["item"],
                           "name": names.get(k, it["item"]), "price": it.get("price"), "img": it.get("img")})
-    return {"forms": [f["form"] for f in forms], "items": items}
+    return {"forms": [f["form"] for f in forms], "form_names": cfg.get("form_names", {}), "items": items}
 
 
 def write_if_changed(path, html):

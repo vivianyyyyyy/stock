@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>没货管理</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --fg: #1b2230; --muted: #5d6676; --line: #e1e4ea;
+    --accent: #2f6fd6; --out: #c62828; --ok: #2e7d4f; --warn-bg: #fff4e0; --warn-fg: #8a5300;
+    --font: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --fg: #e8ebf0; --muted: #9aa3b2; --line: #2c3340;
+      --accent: #6b9cf0; --out: #ff6b6b; --ok: #5fc196; --warn-bg: #3a2c12; --warn-fg: #f3c77a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; }
+  .tabs button { flex: none; font: inherit; font-size: 14px; font-weight: 600; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
+  .status.ok { color: var(--ok); } .status.bad { color: var(--out); }
+  .login { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .login ol { margin: 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+  .login input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: 100%; }
+  .btn { font: inherit; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; cursor: pointer; align-self: flex-start; }
+  .linkbtn { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+  h3 { font-size: 15px; margin: 18px 0 8px; display: flex; gap: 8px; align-items: baseline; }
+  h3 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .card { position: relative; font: inherit; color: inherit; text-align: left; padding: 0; border: 2px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
+  .card:focus-visible, .tabs button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pic { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--bg); }
+  .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cap { padding: 6px 8px 8px; display: flex; flex-direction: column; }
+  .nm { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+  .st { font-size: 12px; font-weight: 600; color: var(--ok); }
+  .card.out { border-color: var(--out); }
+  .card.out .pic img { filter: grayscale(1); opacity: .45; }
+  .card.out .st { color: var(--out); }
+  .card.out .pic::after { content: "✕"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 84px; font-weight: 800; color: var(--out); line-height: 1; }
+  .card.pending { opacity: .7; }
+  @media (max-width: 420px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>没货管理</h1>
+  <p class="sub">点一下款式 = 标成没货（打 ✕），再点一下 = 恢复有货。改完大约 1 分钟后客人菜单会更新。<a href="menu.html" target="_blank" rel="noopener">打开客人菜单</a></p>
+  <div id="login" class="login" hidden>
+    <strong>第一次使用：请输入 GitHub 密钥</strong>
+    <ol>
+      <li>在 GitHub 打开 Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</li>
+      <li>Repository access 选 Only select repositories → <b id="repoName"></b></li>
+      <li>Permissions → Repository permissions → Contents 选 Read and write，生成后复制</li>
+    </ol>
+    <input id="token" type="password" autocomplete="off" placeholder="github_pat_…">
+    <button class="btn" id="saveToken" type="button">保存并开始</button>
+    <span class="sub">密钥只存在这台手机的浏览器里，不会出现在网页上。</span>
+  </div>
+  <div id="main" hidden>
+    <div class="bar">
+      <div class="tabs" id="tabs"></div>
+      <div class="status" id="status" role="status"></div>
+    </div>
+    <div id="list"></div>
+    <p class="sub" style="margin-top:24px"><button type="button" class="linkbtn" id="logout">在这台手机上删除密钥</button></p>
+  </div>
+</div>
+<script>
+const MENU = /*__MENU__*/null;
+const REPO = (location.hostname.endsWith('.github.io') ? location.hostname.split('.')[0] + '/' + location.pathname.split('/')[1] : '') || 'vivianyyyyyy/stock';
+const FILE = 'docs/soldout.json';
+const API = `https://api.github.com/repos/${REPO}/contents/${FILE}`;
+const CAT_ORDER = ['手幅', '小手幅', '团扇', '团扇钥匙链', '小手幅/团扇钥匙链'];
+const key = (it) => `${it.form}|${it.category}|${it.item}`;
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') n.className = v; else n.setAttribute(k, v); }
+  for (const k of kids) n.append(k);
+  return n;
+};
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
+let token = store.get('stock-admin-token');
+let tab = store.get('stock-admin-tab') || MENU.forms[0];
+if (!MENU.forms.includes(tab)) tab = MENU.forms[0];
+let soldOut = new Set();
+const pending = new Map(); // key -> true(没货)/false(有货)，还没存进 GitHub 的改动
+let saving = false, timer = null;
+
+const statusEl = document.getElementById('status');
+const setStatus = (text, cls = '') => { statusEl.textContent = text; statusEl.className = 'status ' + cls; };
+const b64decode = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, '')), (c) => c.charCodeAt(0)));
+const b64encode = (s) => { let bin = ''; new TextEncoder().encode(s).forEach((b) => { bin += String.fromCharCode(b); }); return btoa(bin); };
+
+async function gh(method, body) {
+  const r = await fetch(API + (method === 'GET' ? `?t=${Date.now()}` : ''), {
+    method, cache: 'no-store',
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 401 || r.status === 403) throw Object.assign(new Error('密钥无效或没有写入权限'), { auth: true });
+  return r;
+}
+async function load() {
+  const r = await gh('GET');
+  if (r.status === 404) return { list: [], sha: undefined };
+  if (!r.ok) throw new Error('读取失败 ' + r.status);
+  const j = await r.json();
+  return { list: (JSON.parse(b64decode(j.content)).soldout || []), sha: j.sha };
+}
+const current = () => { const s = new Set(soldOut); pending.forEach((v, k) => (v ? s.add(k) : s.delete(k))); return s; };
+
+async function flush() {
+  if (saving || !pending.size) return;
+  saving = true;
+  const batch = new Map(pending);
+  setStatus('保存中…');
+  try {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { list, sha } = await load();
+      const s = new Set(list);
+      batch.forEach((v, k) => (v ? s.add(k) : s.delete(k)));
+      const next = [...s].sort();
+      const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+      const content = JSON.stringify({ soldout: next, updated: now }, null, 2) + '\n';
+      const changed = batch.size === 1 ? [...batch][0] : null;
+      const msg = changed ? `${changed[1] ? '没货' : '恢复有货'}：${changed[0]}` : `更新没货（${batch.size} 款）`;
+      const r = await gh('PUT', { message: msg, content: b64encode(content), ...(sha ? { sha } : {}) });
+      if (r.ok) {
+        soldOut = new Set(next);
+        batch.forEach((v, k) => { if (pending.get(k) === v) pending.delete(k); });
+        setStatus(`已保存（${now.slice(-8, -3)}），约 1 分钟后客人菜单更新`, 'ok');
+        break;
+      }
+      if (r.status !== 409 && r.status !== 422) throw new Error('保存失败 ' + r.status);
+      if (attempt === 3) throw new Error('保存失败，请再点一次');
+    }
+  } catch (e) {
+    setStatus(e.message + (e.auth ? '，请重新输入密钥' : '，过几秒会自动重试'), 'bad');
+    if (e.auth) { showLogin(); saving = false; return; }
+    setTimeout(flush, 5000);
+  }
+  saving = false;
+  render();
+  if (pending.size) schedule();
+}
+const schedule = () => { clearTimeout(timer); timer = setTimeout(flush, 1200); };
+
+function render() {
+  document.getElementById('tabs').replaceChildren(...MENU.forms.map((f) => {
+    const n = MENU.items.filter((it) => it.form === f && current().has(key(it))).length;
+    const b = el('button', { type: 'button', 'aria-pressed': String(tab === f) }, f.toUpperCase() + (n ? ` · ${n} 款没货` : ''));
+    b.onclick = () => { tab = f; store.set('stock-admin-tab', f); render(); };
+    return b;
+  }));
+  const cur = current();
+  const items = MENU.items.filter((it) => it.form === tab);
+  const cats = [...new Set(items.map((it) => it.category))].sort((a, b) => (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99);
+  document.getElementById('list').replaceChildren(...cats.map((c) => {
+    const list = items.filter((it) => it.category === c);
+    const outN = list.filter((it) => cur.has(key(it))).length;
+    return el('section', {}, el('h3', {}, c, el('small', {}, outN ? `${outN} / ${list.length} 款没货` : `${list.length} 款，全部有货`)),
+      el('div', { class: 'grid' }, ...list.map((it) => {
+        const out = cur.has(key(it));
+        const card = el('button', { type: 'button', class: 'card' + (out ? ' out' : '') + (pending.has(key(it)) ? ' pending' : ''), 'aria-pressed': String(out), 'aria-label': `${it.name}，现在${out ? '没货' : '有货'}，点一下切换` },
+          el('div', { class: 'pic' }, it.img ? el('img', { src: 'img/' + it.img, alt: '', loading: 'lazy' }) : ''),
+          el('div', { class: 'cap' }, el('span', { class: 'nm' }, it.name), el('span', { class: 'st' }, out ? '✕ 没货' : '有货')));
+        card.onclick = () => { pending.set(key(it), !out); render(); schedule(); };
+        return card;
+      })));
+  }));
+}
+
+function showLogin() {
+  document.getElementById('repoName').textContent = REPO;
+  document.getElementById('login').hidden = false;
+  document.getElementById('main').hidden = true;
+}
+async function start() {
+  document.getElementById('login').hidden = true;
+  document.getElementById('main').hidden = false;
+  setStatus('读取中…');
+  render();
+  try {
+    soldOut = new Set((await load()).list);
+    setStatus(soldOut.size ? `现在共 ${soldOut.size} 款没货` : '现在全部有货', 'ok');
+  } catch (e) {
+    setStatus(e.message, 'bad');
+    if (e.auth) { store.set('stock-admin-token', null); token = null; showLogin(); return; }
+  }
+  render();
+}
+document.getElementById('saveToken').onclick = () => {
+  const v = document.getElementById('token').value.trim();
+  if (!v) return;
+  token = v; store.set('stock-admin-token', v); start();
+};
+document.getElementById('logout').onclick = () => { store.set('stock-admin-token', null); token = null; showLogin(); };
+window.addEventListener('beforeunload', (e) => { if (pending.size) { e.preventDefault(); e.returnValue = ''; } });
+if (token) start(); else showLogin();
+</script>
+</body>
+</html>

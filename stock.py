@@ -18,6 +18,7 @@ SHARED_CAT = "ミニキーホルダー"
 DATE_COL = "受取可能の日程PICK-UP DATE"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "index.html")
 MENU_OUT = os.path.join(os.path.dirname(OUT), "menu.html")
+ADMIN_OUT = os.path.join(os.path.dirname(OUT), "admin.html")
 
 
 def fetch_csv(sheet_id):
@@ -158,7 +159,7 @@ def menu_data(forms, products):
                 continue
             items.append({"form": f["form"], "category": it["category"], "item": it["item"],
                           "name": names.get(k, it["item"]), "price": it.get("price"), "img": it.get("img")})
-    return {"forms": [f["form"] for f in forms], "sheet": cfg.get("sheet", ""), "items": items}
+    return {"forms": [f["form"] for f in forms], "items": items}
 
 
 def write_if_changed(path, html):
@@ -197,8 +198,11 @@ def main():
     now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
     data = {"updated": now, "forms": forms, "errors": errors}
     # 有表格没读到时不动菜单，免得菜单里少了款式
-    if not errors and write_if_changed(MENU_OUT, build(menu_data(forms, products), "menu_template.html", "/*__MENU__*/null")):
-        print(f"已生成 {MENU_OUT}")
+    if not errors:
+        menu = menu_data(forms, products)
+        for tpl, out in (("menu_template.html", MENU_OUT), ("admin_template.html", ADMIN_OUT)):
+            if write_if_changed(out, build(menu, tpl, "/*__MENU__*/null")):
+                print(f"已生成 {out}")
     if not write_if_changed(OUT, build(data)):
         print("数据和模板都没有变化，不改网页")
         return

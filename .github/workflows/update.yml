@@ -6,7 +6,7 @@ on:
   workflow_dispatch:          # 也可以在 Actions 页面手动点 Run
   push:                       # 改了脚本、网页模板或价格图片设置后立刻跑一次
     branches: [main]
-    paths: [stock.py, template.html, menu_template.html, products.json, .github/workflows/update.yml]
+    paths: [stock.py, template.html, menu_template.html, admin_template.html, products.json, .github/workflows/update.yml]
 
 permissions:
   contents: write
@@ -30,10 +30,11 @@ jobs:
         run: |
           git config user.name "stock-bot"
           git config user.email "stock-bot@users.noreply.github.com"
-          git add docs/index.html docs/menu.html
+          git add docs/index.html docs/menu.html docs/admin.html
           # 数字没变时 stock.py 不会改文件，这里也就不提交
           if git diff --cached --quiet; then
             echo "数据没有变化"
           else
-            git commit -m "更新备货清单" && git push
+            git commit -m "更新备货清单"
+            git pull --rebase && git push  # 管理页可能刚改过 soldout.json
           fi

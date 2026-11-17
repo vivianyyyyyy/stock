@@ -78,8 +78,7 @@ const CATS = {
   '小手幅/团扇钥匙链': ['ミニキーホルダー', 'MINI KEYCHAIN'],
 };
 const ORDER = Object.keys(CATS);
-const norm = (s) => String(s || '').toLowerCase().replace(/[\s　]+/g, '');
-const key = (f, c, i) => [f, c, i].map(norm).join('|');
+const key = (it) => `${it.form}|${it.category}|${it.item}`;
 const yen = (n) => '¥' + n.toLocaleString('ja-JP');
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
@@ -107,7 +106,7 @@ function render() {
   const cats = [...new Set(items.map((it) => it.category))].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
   const sec = el('section', {}, el('h2', {}, state.tab.toUpperCase()));
   for (const c of cats) {
-    const list = items.filter((it) => it.category === c).map((it) => ({ ...it, out: soldOut.has(key(it.form, it.category, it.name)) }))
+    const list = items.filter((it) => it.category === c).map((it) => ({ ...it, out: soldOut.has(key(it)) }))
       .filter((it) => !(state.hideOut && it.out))
       .sort((a, b) => a.out - b.out);
     if (!list.length) continue;
@@ -135,33 +134,14 @@ const hz = document.getElementById('hideout');
 hz.checked = state.hideOut;
 hz.onchange = () => { state.hideOut = hz.checked; save(); render(); };
 
-// 在庫表（Google 表格）：列は 表单 / 分类 / 款式 / 没货，「没货」にチェック（または何か記入）で完売
-const truthy = (v) => v === true || (typeof v === 'string' && v.trim() !== '' && !/^(false|0|no|有|有货)$/i.test(v.trim()));
-function loadStock() {
-  if (!MENU.sheet) return;
-  const cb = 'stock_cb_' + Date.now();
-  const s = document.createElement('script');
-  window[cb] = (resp) => {
-    delete window[cb]; s.remove();
-    try {
-      const t = resp.table;
-      const labels = t.cols.map((c) => (c.label || '').trim());
-      let rows = t.rows.map((r) => r.c.map((c) => (c ? (c.v ?? c.f ?? '') : '')));
-      let idx = (name) => labels.indexOf(name);
-      if (idx('款式') < 0 && rows.length) { // 表头没被识别时，把第一行当表头
-        const h = rows.shift().map((x) => String(x).trim());
-        idx = (name) => h.indexOf(name);
-      }
-      const [fi, ci, ii, oi] = ['表单', '分类', '款式', '没货'].map(idx);
-      if ([fi, ci, ii, oi].some((i) => i < 0)) throw new Error('表头不对');
-      soldOut = new Set(rows.filter((r) => truthy(r[oi])).map((r) => key(r[fi], r[ci], r[ii])));
-      document.getElementById('note').textContent = '在庫状況は自動で更新されます · Stock updates automatically';
-      render();
-    } catch (e) { console.warn(e); }
-  };
-  s.onerror = () => { delete window[cb]; s.remove(); };
-  s.src = `https://docs.google.com/spreadsheets/d/${MENU.sheet}/gviz/tq?headers=1&tqx=out:json;responseHandler:${cb}&_=${Date.now()}`;
-  document.head.append(s);
+// 没货状态：管理页（admin.html）写进 soldout.json
+async function loadStock() {
+  try {
+    const r = await fetch(`soldout.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const next = new Set((await r.json()).soldout || []);
+    if ([...next].sort().join() !== [...soldOut].sort().join()) { soldOut = next; render(); }
+  } catch (e) { console.warn(e); }
 }
 render();
 loadStock();

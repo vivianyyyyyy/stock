@@ -23,15 +23,29 @@
   header { text-align: center; padding: 8px 0 16px; }
   h1 { margin: 0; font-size: 26px; letter-spacing: .06em; }
   .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-  nav { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0 10px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
-  nav::-webkit-scrollbar { display: none; }
+  .sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0 8px; border-bottom: 1px solid var(--line); margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  nav { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  nav::-webkit-scrollbar, .chips::-webkit-scrollbar { display: none; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-top: 8px; }
+  .chips button { flex: none; font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .chips button:focus-visible, .linkbtn:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 10px 0 0; }
+  .linkbtn { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 2px 0; text-decoration: underline; cursor: pointer; }
   nav button { flex: none; font: inherit; font-size: 15px; font-weight: 600; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
   nav button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
   nav button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  label.ctl { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: 2px 0 6px; }
+  label.ctl { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
   section { margin-top: 18px; }
   h2 { font-size: 22px; margin: 18px 0 4px; letter-spacing: .04em; }
-  h3 { font-size: 15px; margin: 14px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  details.cat { border-top: 1px solid var(--line); }
+  details.cat > summary { list-style: none; cursor: pointer; padding: 12px 0; display: flex; align-items: center; gap: 10px; }
+  details.cat > summary::-webkit-details-marker { display: none; }
+  details.cat > summary::after { content: "▾"; color: var(--muted); font-size: 16px; transition: transform .15s; }
+  details.cat:not([open]) > summary::after { transform: rotate(-90deg); }
+  details.cat[open] > summary { padding-bottom: 8px; }
+  details.cat .grid { padding-bottom: 16px; }
+  h3 { font-size: 15px; margin: 0; flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  h3 .cnt { flex-basis: 100%; font-size: 12px; color: var(--muted); font-weight: 400; }
   h3 .en { font-size: 11px; color: var(--muted); letter-spacing: .08em; font-weight: 500; }
   h3 .price { margin-left: auto; color: var(--accent); font-size: 15px; font-variant-numeric: tabular-nums; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
@@ -62,8 +76,15 @@
     <h1>GOODS MENU</h1>
     <p class="sub">グッズメニュー · 画像をタップで拡大</p>
   </header>
-  <nav id="tabs" aria-label="グループ"></nav>
-  <label class="ctl" for="hideout"><input type="checkbox" id="hideout"> 完売を表示しない / Hide sold out</label>
+  <div class="sticky" id="sticky">
+    <nav id="tabs" aria-label="グループ"></nav>
+    <div class="chips" id="chips" aria-label="カテゴリーへ移動"></div>
+  </div>
+  <div class="tools">
+    <label class="ctl" for="hideout"><input type="checkbox" id="hideout"> 完売を表示しない / Hide sold out</label>
+    <button type="button" class="linkbtn" id="openall">すべて開く / Expand all</button>
+    <button type="button" class="linkbtn" id="closeall">すべて閉じる / Collapse all</button>
+  </div>
   <main id="menu"></main>
   <p class="note" id="note">在庫状況は自動で更新されます · Stock updates automatically</p>
   <div class="lightbox" id="lb" hidden><figure><img alt=""><figcaption></figcaption></figure></div>
@@ -87,7 +108,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 let soldOut = new Set();
-const state = { tab: MENU.forms[0], hideOut: false };
+const state = { tab: MENU.forms[0], hideOut: false, closed: {} };
 try { Object.assign(state, JSON.parse(localStorage.getItem('menu-view') || '{}')); } catch (e) {}
 if (!MENU.forms.includes(state.tab)) state.tab = MENU.forms[0];
 const save = () => { try { localStorage.setItem('menu-view', JSON.stringify(state)); } catch (e) {} };
@@ -105,15 +126,22 @@ function render() {
   const items = MENU.items.filter((it) => it.form === state.tab);
   const cats = [...new Set(items.map((it) => it.category))].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
   const sec = el('section', {}, el('h2', {}, state.tab.toUpperCase()));
+  const chips = [];
   for (const c of cats) {
-    const list = items.filter((it) => it.category === c).map((it) => ({ ...it, out: soldOut.has(key(it)) }))
-      .filter((it) => !(state.hideOut && it.out))
-      .sort((a, b) => a.out - b.out);
+    const all = items.filter((it) => it.category === c).map((it) => ({ ...it, out: soldOut.has(key(it)) }));
+    const list = all.filter((it) => !(state.hideOut && it.out)).sort((a, b) => a.out - b.out);
     if (!list.length) continue;
     const [jp, en] = CATS[c] || [c, ''];
     const prices = [...new Set(list.map((it) => it.price).filter(Boolean))];
-    sec.append(el('h3', {}, jp, el('span', { class: 'en' }, en), el('span', { class: 'price' }, prices.length === 1 ? yen(prices[0]) : '')));
-    sec.append(el('div', { class: 'grid' }, ...list.map((it) => {
+    const outN = all.filter((it) => it.out).length;
+    const ck = state.tab + '|' + c;
+    const det = el('details', { class: 'cat', id: 'cat-' + ORDER.indexOf(c) },
+      el('summary', {}, el('h3', {}, jp, el('span', { class: 'en' }, en), el('span', { class: 'price' }, prices.length === 1 ? yen(prices[0]) : ''),
+        el('span', { class: 'cnt' }, `${all.length} 種類` + (outN ? ` · 完売 ${outN}` : '')))));
+    det.open = !state.closed[ck];
+    det.addEventListener('toggle', () => { if (det.open) delete state.closed[ck]; else state.closed[ck] = 1; save(); });
+    chips.push([jp, det]);
+    det.append(el('div', { class: 'grid' }, ...list.map((it) => {
       const card = el('button', { type: 'button', class: 'card' + (it.out ? ' out' : ''), 'aria-label': `${it.name} ${jp}${it.out ? ' 完売' : ''}` },
         el('div', { class: 'pic' }, it.img ? el('img', { src: 'img/' + it.img, alt: '', loading: 'lazy' }) : ''),
         el('div', { class: 'cap' }, el('span', { class: 'nm' }, it.name), el('span', { class: 'pr' }, it.price ? yen(it.price) : '')));
@@ -126,13 +154,29 @@ function render() {
       };
       return card;
     })));
+    sec.append(det);
   }
+  document.getElementById('chips').replaceChildren(...chips.map(([jp, det]) => {
+    const b = el('button', { type: 'button' }, jp);
+    b.onclick = () => {
+      det.open = true;
+      const y = det.getBoundingClientRect().top + window.scrollY - document.getElementById('sticky').offsetHeight - 4;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    };
+    return b;
+  }));
   document.getElementById('menu').replaceChildren(sec);
 }
 
 const hz = document.getElementById('hideout');
 hz.checked = state.hideOut;
 hz.onchange = () => { state.hideOut = hz.checked; save(); render(); };
+const setAll = (open) => {
+  for (const c of ORDER) { const k = state.tab + '|' + c; if (open) delete state.closed[k]; else state.closed[k] = 1; }
+  save(); render();
+};
+document.getElementById('openall').onclick = () => setAll(true);
+document.getElementById('closeall').onclick = () => setAll(false);
 
 // 没货状态：管理页（admin.html）写进 soldout.json
 async function loadStock() {

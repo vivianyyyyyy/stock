@@ -1,6 +1,6 @@
 // 离线缓存：手机有网时打开过一次，之后没信号也能打开页面。
 // 改了 index.html 之后不用改这里：页面每次有网都会取最新的；只有改了这个文件的缓存规则才需要把版本号加 1。
-const VERSION = 'jp-shell-v1';
+const VERSION = 'jp-shell-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
   // 页面：先上网拿最新的（顺便更新手机里的），没网或太慢就用存的
   if (isPage) {
     e.respondWith(
-      withTimeout(fetch(req), 3000)
+      withTimeout(fetch(req.url, { cache: 'no-cache' }), 3000)
         .then(res => {
           const copy = res.clone();
           caches.open(VERSION).then(c => c.put('./index.html', copy));

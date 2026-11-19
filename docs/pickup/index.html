@@ -450,13 +450,13 @@
 // ---------- 示例商品（没连 Google 表格时用；连了以后用表格「商品」表） ----------
 // img: 图片；spec: 尺寸/材质，用来区分长得像的款；jpy / cny: 日元 / 人民币单价
 const DEMO_PRODUCTS = {
-  'Jeonghan · Aura 手幅':            { img: '../img/ed95-aura.jpg',           spec: '', jpy: 2500, cny: 0, c1: '#ffd6e0', c2: '#b8264d' },
-  'Jeonghan · skyblue 手幅':         { img: '../img/ed95-skyblue.jpg',        spec: '', jpy: 2500, cny: 0, c1: '#cfe9ff', c2: '#1b5f99' },
-  'Jeonghan · mini cuddle 小手幅':   { img: '../img/ed95-cuddle-mini.jpg',    spec: '', jpy: 1000, cny: 0, c1: '#ffd6e0', c2: '#b8264d' },
-  'Jeonghan · Sunshine 团扇':        { img: '../img/ed95-sunshine.jpg',       spec: '', jpy: 2500, cny: 0, c1: '#ffe8b8', c2: '#9a5a00' },
-  'Joshua · HEARTBEAT 手幅':         { img: '../img/k2-heartbeat.jpg',        spec: '', jpy: 2500, cny: 0, c1: '#ddd5ff', c2: '#5634c4' },
-  'Joshua · MOCHI 团扇钥匙链':       { img: '../img/k2-mochi-mini.jpg',       spec: '', jpy: 1000, cny: 0, c1: '#e5e5e5', c2: '#222' },
-  'Unit · J x J 手幅':               { img: '../img/unit-jxj.jpg',            spec: '', jpy: 2500, cny: 0, c1: '#d3f0f7', c2: '#1b6f87' },
+  'Jeonghan · Aura 手幅':            { img: '../img/ed95-aura.jpg',           spec: '', jpy: 2500, cny: 104, c1: '#ffd6e0', c2: '#b8264d' },
+  'Jeonghan · skyblue 手幅':         { img: '../img/ed95-skyblue.jpg',        spec: '', jpy: 2500, cny: 104, c1: '#cfe9ff', c2: '#1b5f99' },
+  'Jeonghan · mini cuddle 小手幅':   { img: '../img/ed95-cuddle-mini.jpg',    spec: '', jpy: 1000, cny: 42, c1: '#ffd6e0', c2: '#b8264d' },
+  'Jeonghan · Sunshine 团扇':        { img: '../img/ed95-sunshine.jpg',       spec: '', jpy: 2500, cny: 104, c1: '#ffe8b8', c2: '#9a5a00' },
+  'Joshua · HEARTBEAT 手幅':         { img: '../img/k2-heartbeat.jpg',        spec: '', jpy: 2500, cny: 104, c1: '#ddd5ff', c2: '#5634c4' },
+  'Joshua · MOCHI 团扇钥匙链':       { img: '../img/k2-mochi-mini.jpg',       spec: '', jpy: 1000, cny: 42, c1: '#e5e5e5', c2: '#222' },
+  'Unit · J x J 手幅':               { img: '../img/unit-jxj.jpg',            spec: '', jpy: 2500, cny: 104, c1: '#d3f0f7', c2: '#1b6f87' },
 };
 
 // ---------- 示例订单（列和表格「订单」表一样） ----------
@@ -578,7 +578,7 @@ function demoEvents() {
   const e = (i, by, oid, type, f) => ({ eid: 'demo-' + i, at: t + i, by, dev: 'demo', oid, type, ...f });
   return [
     e(1, 'A', 'r2', 'pick', { n: 'Jeonghan · Aura 手幅', d: 1 }),
-    e(2, 'A', 'r2', 'pay', { method: '现金', cur: 'JPY', amount: 2500, jpy: 2500, cny: 0 }),
+    e(2, 'A', 'r2', 'pay', { method: '现金', cur: 'JPY', amount: 2500, jpy: 2500, cny: 104 }),
     e(3, 'A', 'r2', 'memo', { text: '小手幅明天来拿' }),
   ];
 }

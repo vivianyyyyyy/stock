@@ -496,7 +496,7 @@ const MockBackend = {
 // Google 表格后台：部署 Apps Script（google-apps-script.gs）后得到的「网页应用网址」填在这里。
 // 空着 = 用示例数据和模拟后台。（测试时也可以在网址后面加 ?api=… 临时指定）
 const SHEET_API = new URLSearchParams(location.search).get('api') ||
-  '';
+  'https://script.google.com/macros/s/AKfycbzEy1b_bAnmcH8XD9ttCOJNWoSKaOl8JLHEfcUPi25zxJringeor5-Qm7Y1thI3V3DqoQ/exec';
 
 const GoogleBackend = {
   name: 'Google 表格',
